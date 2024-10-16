@@ -1,3 +1,5 @@
+import os
+import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
@@ -87,7 +89,7 @@ def create_spectrogram(frame: np.ndarray) -> np.ndarray:
     return magnitude_spectrum
 
 
-def generate_spectrogram(audio_path: str, frame_duration_ms: int = 40) -> np.ndarray:
+def generate_spectrogram(audio_path: str, frame_duration_ms) -> np.ndarray:
     """
     Generate a spectrogram from an audio file after removing silence.
 
@@ -134,25 +136,37 @@ def save_spectrogram_image(spectrogram_2d: np.ndarray, filename: str) -> None:
     # Save the figure as an image file
     plt.savefig(filename)
     plt.close()  # Close the figure to free up memory
+    print(f"Saved spectogram {filename}")
 
 
-def generate_all_spectograms():
-    audio_files = [
-        "audio/analyse_gary_inskeep_12.wav",
-        "audio/analyse_christopher_navarrez_10.wav",
-        "audio/analyse_darrell_robinson_12.wav",
-        "audio/audio_kim_howard_10.wav",
-        "audio/audio_kimmy_west_12.wav",
-        "audio/audio_leroy_alshak_10.wav",
-    ]
-    for audio_path in audio_files:
+def generate_and_save_all_spectograms():
+    """
+    Generate spectrograms for all WAV files in the 'audio' directory
+    and save them in the 'spectograms' directory.
+    """
+    audio_dir = "audio"
+    spectrogram_dir = "spectograms"
+    frame_duration_ms = 30
+
+    # Create the spectrogram directory if it doesn't exist
+    os.makedirs(spectrogram_dir, exist_ok=True)
+
+    # Find all WAV files in the audio directory
+    wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
+
+    for audio_path in wav_files:
         # Generate the spectrogram
-        spectrogram = generate_spectrogram(audio_path)
+        spectrogram = generate_spectrogram(audio_path, frame_duration_ms)
+
+        # Extract the base filename without extension
+        base_name = os.path.splitext(os.path.basename(audio_path))[0]
+
+        # Define the path for the spectrogram image
+        spectrogram_path = os.path.join(spectrogram_dir, f"{base_name}.png")
 
         # Save the spectrogram image
-        image_name = audio_path.split("/")[1].split(".")[0]
-        save_spectrogram_image(spectrogram, f"spectograms/{image_name}.png")
+        save_spectrogram_image(spectrogram, spectrogram_path)
 
 
 if __name__ == "__main__":
-    generate_all_spectograms()
+    generate_and_save_all_spectograms()
