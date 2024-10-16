@@ -112,31 +112,54 @@ def generate_spectrogram(audio_path: str, frame_duration_ms) -> np.ndarray:
     return spectrogram_2d
 
 
-def save_spectrogram_image(spectrogram_2d: np.ndarray, filename: str) -> None:
+def save_spectrogram_image(
+    spectrogram_2d: np.ndarray, filename: str, axes: bool
+) -> None:
     """
-    Save the 2D spectrogram image.
+    Save the 2D spectrogram image with optional axes, labels, titles, and colorbar.
 
     Parameters:
     spectrogram_2d (np.ndarray): The 2D spectrogram array (frequency x time).
     filename (str): The filename to save the image as.
+    axes (bool): Whether to include axes, labels, titles, and colorbar. Defaults to True.
     """
-    # Plot and save the spectrogram
-    plt.figure(figsize=(10, 6))
+    # Create a figure with specified size
+    plt.figure(figsize=(10, 10))
+
+    # Display the spectrogram
     plt.imshow(
         10 * np.log10(spectrogram_2d + 1e-10),
         origin="lower",
         aspect="auto",
         cmap="inferno",
     )
-    plt.colorbar(label="Magnitude (dB)")
-    plt.title("Spectrogram")
-    plt.xlabel("Time (Frames)")
-    plt.ylabel("Frequency Bin")
 
-    # Save the figure as an image file
-    plt.savefig(filename)
-    plt.close()  # Close the figure to free up memory
-    print(f"Saved spectogram {filename}")
+    if axes:
+        # Add colorbar with label
+        plt.colorbar(label="Magnitude (dB)")
+
+        # Add title and axis labels
+        plt.title("Spectrogram")
+        plt.xlabel("Time (Frames)")
+        plt.ylabel("Frequency Bin")
+    else:
+        # Remove all axes, ticks, and spines
+        plt.axis("off")
+
+    # Save the figure
+    if axes:
+        # Save with default bounding box and padding
+        plt.savefig(filename, bbox_inches="tight", pad_inches=0.1)
+    else:
+        # Save with tight bounding box and no padding
+        plt.savefig(filename, bbox_inches="tight", pad_inches=0)
+
+    # Close the figure to free up memory
+    plt.close()
+
+    print(
+        f"Saved spectrogram image as {filename} with axes={'enabled' if axes else 'disabled'}."
+    )
 
 
 def generate_and_save_all_spectograms():
@@ -145,7 +168,7 @@ def generate_and_save_all_spectograms():
     and save them in the 'spectograms' directory.
     """
     audio_dir = "audio"
-    spectrogram_dir = "spectograms"
+    spectrogram_dir = "spectrograms"
     frame_duration_ms = 30
 
     # Create the spectrogram directory if it doesn't exist
@@ -165,7 +188,7 @@ def generate_and_save_all_spectograms():
         spectrogram_path = os.path.join(spectrogram_dir, f"{base_name}.png")
 
         # Save the spectrogram image
-        save_spectrogram_image(spectrogram, spectrogram_path)
+        save_spectrogram_image(spectrogram, spectrogram_path, axes=False)
 
 
 if __name__ == "__main__":

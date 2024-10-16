@@ -224,4 +224,5 @@ temp
 
 
 audio
-spectograms
+spectrograms
+spectrograms_with_axes
