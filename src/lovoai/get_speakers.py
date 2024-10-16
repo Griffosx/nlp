@@ -13,25 +13,20 @@ def filter_english_speakers(data):
             "id": speaker["id"],
             "displayName": speaker["displayName"],
             "locale": speaker["locale"],
-            "gender": speaker["gender"]
+            "gender": speaker["gender"],
         }
         for speaker in data["data"]
-        #if speaker["locale"] in english_locales
-        if speaker["locale"].startswith("en-")
-        and len(speaker["speakerStyles"]) > 1
+        # if speaker["locale"] in english_locales
+        if speaker["locale"].startswith("en-") and len(speaker["speakerStyles"]) > 1
     ]
-    
-    return filtered_speakers
 
+    return filtered_speakers
 
 
 def get_speakers():
     url = "https://api.genny.lovo.ai/api/v1/speakers?sort=displayName%3A1"
 
-    headers = {
-        "accept": "application/json",
-        "X-API-KEY": API_KEY
-    }
+    headers = {"accept": "application/json", "X-API-KEY": API_KEY}
 
     data = requests.get(url, headers=headers).json()
     return filter_english_speakers(data)
