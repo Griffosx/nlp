@@ -28,7 +28,6 @@ def main():
     # ----------------------------
     # 2. Data Loading and Preprocessing
     # ----------------------------
-    # Path to your dataset
     path = Path("spectrograms")  # Ensure the path is correct
 
     # Verify the dataset directory exists
@@ -70,7 +69,7 @@ def main():
     # ----------------------------
     # 4. Model Initialization
     # ----------------------------
-    num_classes = len(dls.vocab)
+    _num_classes = len(dls.vocab)
     learn = cnn_learner(
         dls,
         resnet18,
@@ -82,7 +81,7 @@ def main():
     print(learn.model)
 
     # ----------------------------
-    # 5. Learning Rate Finder (Optional)
+    # 5. Learning Rate Finder
     # ----------------------------
     # Uncomment the following lines to find an optimal learning rate
     # learn.lr_find()
@@ -132,7 +131,7 @@ def main():
     # ----------------------------
     # 9. Model Loading (For Inference or Further Training)
     # ----------------------------
-    # To load the model later, use the following lines:
+    # To load the model later:
     # learn_loaded = cnn_learner(
     #     dls,
     #     resnet18,

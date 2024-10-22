@@ -224,5 +224,10 @@ temp
 
 
 audio
+audio_with_noise_20
+audio_with_noise_40
 spectrograms
+spectrograms_with_noise_20
+spectrograms_with_noise_40
 spectrograms_with_axes
+output_data

@@ -8,13 +8,6 @@ from scipy.io import wavfile
 def remove_silence(audio_data: np.ndarray, threshold: float = 0.01) -> np.ndarray:
     """
     Remove silence from the beginning and end of the audio data.
-
-    Parameters:
-    audio_data (np.ndarray): The input audio data.
-    threshold (float): The amplitude threshold for silence detection.
-
-    Returns:
-    np.ndarray: The trimmed audio data.
     """
     abs_audio = np.abs(audio_data)
     mask = abs_audio > threshold * np.max(abs_audio)
@@ -31,41 +24,29 @@ def remove_silence(audio_data: np.ndarray, threshold: float = 0.01) -> np.ndarra
 def apply_hamming_window(frame: np.ndarray) -> np.ndarray:
     """
     Apply the Hamming window to the given frame.
-
-    Parameters:
-    frame (np.ndarray): The input audio frame.
-
-    Returns:
-    np.ndarray: The windowed frame.
     """
     hamming_window = np.hamming(len(frame))
     windowed_frame = frame * hamming_window
     return windowed_frame
 
 
-def divide_in_frames(audio_path: str, frame_duration_ms: int = 40) -> np.ndarray:
+def divide_in_frames(audio_path: str) -> np.ndarray:
     """
     Divide the audio file into frames after removing silence from the beginning and end.
-
-    Parameters:
-    audio_path (str): Path to the audio file.
-    frame_duration_ms (int): Duration of each frame in milliseconds.
-
-    Returns:
-    np.ndarray: Array of frames (2D array).
     """
     # Read the audio data and sampling rate
-    sampling_rate, audio_data = wavfile.read(audio_path)
-    print(f"sampling_rate {sampling_rate}")
+    _sampling_rate, audio_data = wavfile.read(audio_path)
+
+    # Old method to calculate the number of samples per frame
+    # samples_per_frame = int(sampling_rate * frame_duration_ms / 1000)
+    # So the old samples per frame was (44100 * 30) / 1000 = 1323
+    samples_per_frame = 1024
+    # 1024 samples per frame means that the frame duration is circa 24 ms
 
     # Remove silence
     trimmed_audio = remove_silence(audio_data)
 
-    # Calculate the number of samples per frame
-    samples_per_frame = int(sampling_rate * frame_duration_ms / 1000)
-    # TODO samples_per_frame better to 1024
     # TODO in report explain why it's better to have power of 2 of samples_per_frame
-    print(f"samples_per_frame {samples_per_frame}")
 
     # Reshape the audio data into frames
     num_frames = len(trimmed_audio) // samples_per_frame
@@ -76,15 +57,38 @@ def divide_in_frames(audio_path: str, frame_duration_ms: int = 40) -> np.ndarray
     return [apply_hamming_window(frame) for frame in frames]
 
 
-def create_spectrogram(frame: np.ndarray) -> np.ndarray:
+def add_noise(audio_data: np.ndarray, snr_db: int = 20) -> np.ndarray:
+    """
+    Add white Gaussian noise to the audio data at a specified SNR level.
+    """
+    # Convert audio data to float
+    audio_data_float = audio_data.astype(np.float32)
+
+    # Remove silence to compute signal power
+    trimmed_audio = remove_silence(audio_data_float)
+
+    # Calculate the power of the non-silent part of the original signal
+    if len(trimmed_audio) == 0:
+        # If trimmed audio is empty, set signal power to a small value to avoid division by zero
+        signal_power = 1e-10
+    else:
+        signal_power = np.mean(trimmed_audio**2)
+
+    # Compute noise power based on desired SNR
+    noise_power = signal_power / (10 ** (snr_db / 10))
+
+    # Generate white noise
+    noise = np.random.normal(0, np.sqrt(noise_power), len(audio_data_float))
+
+    # Add noise to the original signal
+    noisy_audio = audio_data_float + noise
+
+    return noisy_audio
+
+
+def _spectrogram(frame: np.ndarray) -> np.ndarray:
     """
     Create a spectrogram from a given audio frame using the Short-Time Fourier Transform (STFT).
-
-    Parameters:
-    frame (np.ndarray): The input audio frame.
-
-    Returns:
-    np.ndarray: The magnitude spectrogram of the input frame.
     """
     fft_result = np.fft.fft(frame)
     magnitude_spectrum = np.abs(
@@ -93,22 +97,15 @@ def create_spectrogram(frame: np.ndarray) -> np.ndarray:
     return magnitude_spectrum
 
 
-def generate_spectrogram(audio_path: str, frame_duration_ms) -> np.ndarray:
+def generate_spectrogram(audio_path: str) -> np.ndarray:
     """
     Generate a spectrogram from an audio file after removing silence.
-
-    Parameters:
-    audio_path (str): Path to the audio file.
-    frame_duration_ms (int): Duration of each frame in milliseconds.
-
-    Returns:
-    np.ndarray: The spectrogram as a 2D array (frequency x time).
     """
     # Divide the audio into frames after removing silence
-    frames = divide_in_frames(audio_path, frame_duration_ms)
+    frames = divide_in_frames(audio_path)
 
     # Apply Hamming window and create spectrogram for each frame
-    spectrograms = [create_spectrogram(frame) for frame in frames]
+    spectrograms = [_spectrogram(frame) for frame in frames]
 
     # Stack the spectrograms into a 2D array (frequency x time)
     spectrogram_2d = np.array(spectrograms).T
@@ -121,11 +118,6 @@ def save_spectrogram_image(
 ) -> None:
     """
     Save the 2D spectrogram image with optional axes, labels, titles, and colorbar.
-
-    Parameters:
-    spectrogram_2d (np.ndarray): The 2D spectrogram array (frequency x time).
-    filename (str): The filename to save the image as.
-    axes (bool): Whether to include axes, labels, titles, and colorbar. Defaults to True.
     """
     # Create a figure with specified size
     plt.figure(figsize=(10, 10))
@@ -166,14 +158,13 @@ def save_spectrogram_image(
     )
 
 
-def generate_and_save_all_spectograms():
+def _generate_and_save_all_spectograms(audio_dir: str):
     """
     Generate spectrograms for all WAV files in the 'audio' directory
     and save them in the 'spectograms' directory.
     """
-    audio_dir = "audio"
-    spectrogram_dir = "spectrograms"
-    frame_duration_ms = 30
+    spectrogram_dir = "spectrograms"  # no noise
+    # frame_duration_ms = 24
 
     # Create the spectrogram directory if it doesn't exist
     os.makedirs(spectrogram_dir, exist_ok=True)
@@ -181,9 +172,10 @@ def generate_and_save_all_spectograms():
     # Find all WAV files in the audio directory
     wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
 
-    for audio_path in wav_files[:1]:
+    # TODO add for cycle to add noise 20 and 40 db and generate relative
+    for audio_path in wav_files:
         # Generate the spectrogram
-        spectrogram = generate_spectrogram(audio_path, frame_duration_ms)
+        spectrogram = generate_spectrogram(audio_path)
 
         # Extract the base filename without extension
         base_name = os.path.splitext(os.path.basename(audio_path))[0]
@@ -195,5 +187,92 @@ def generate_and_save_all_spectograms():
         save_spectrogram_image(spectrogram, spectrogram_path, axes=False)
 
 
+def generate_and_save_noisy_audio(audio_dir: str, snr_db_list: list[int]):
+    """
+    Generate noisy audio files for each WAV file in the audio directory
+    at specified SNR levels and save them to relative folders.
+    """
+    for snr_db in snr_db_list:
+        # Create the output directory
+        output_dir = f"{audio_dir}_with_noise_{snr_db}"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Find all WAV files in the audio directory
+        wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
+
+        for audio_path in wav_files:
+            # Read the audio data and sampling rate
+            sampling_rate, audio_data = wavfile.read(audio_path)
+            trimmed_audio_data = remove_silence(audio_data)
+
+            # Add noise to audio data
+            noisy_audio_data = add_noise(trimmed_audio_data, snr_db)
+
+            # Ensure data is in appropriate format
+            if audio_data.dtype == np.int16:
+                # Clip the data to int16 range
+                noisy_audio_data = np.clip(noisy_audio_data, -32768, 32767)
+                # Convert back to int16
+                noisy_audio_data = noisy_audio_data.astype(np.int16)
+            elif audio_data.dtype == np.int32:
+                # Clip and convert to int32
+                noisy_audio_data = np.clip(noisy_audio_data, -2147483648, 2147483647)
+                noisy_audio_data = noisy_audio_data.astype(np.int32)
+            else:
+                # For other types, perhaps save as float32
+                noisy_audio_data = noisy_audio_data.astype(np.float32)
+
+            # Define the output file path
+            base_name = os.path.basename(audio_path)
+            output_path = os.path.join(output_dir, base_name)
+
+            # Save the noisy audio data
+            wavfile.write(output_path, sampling_rate, noisy_audio_data)
+            print(f"Saved noisy audio file {output_path} with SNR {snr_db} dB")
+
+
+def generate_and_save_all_spectrograms(audio_dir: str, snr_db_list: list[int] = None):
+    """
+    Generate spectrograms for all WAV files in the given audio directory
+    and save them in the 'spectrograms' directory, including versions with added noise.
+    """
+    if snr_db_list is None:
+        snr_db_list = [0]  # 0 indicates original audio without added noise
+
+    # frame_duration_ms = 24
+
+    for snr_db in snr_db_list:
+        if snr_db == 0:
+            input_dir = audio_dir
+            spectrogram_dir = "spectrograms"
+        else:
+            input_dir = f"{audio_dir}_with_noise_{snr_db}"
+            spectrogram_dir = f"spectrograms_with_noise_{snr_db}"
+
+        # Create the spectrogram directory if it doesn't exist
+        os.makedirs(spectrogram_dir, exist_ok=True)
+
+        # Find all WAV files in the input directory
+        wav_files = glob.glob(os.path.join(input_dir, "*.wav"))
+
+        for audio_path in wav_files:
+            # Generate the spectrogram
+            spectrogram = generate_spectrogram(audio_path)
+
+            # Extract the base filename without extension
+            base_name = os.path.splitext(os.path.basename(audio_path))[0]
+
+            # Define the path for the spectrogram image
+            spectrogram_path = os.path.join(spectrogram_dir, f"{base_name}.png")
+
+            # Save the spectrogram image
+            save_spectrogram_image(spectrogram, spectrogram_path, axes=False)
+            print(f"Saved spectrogram image {spectrogram_path}")
+
+
 if __name__ == "__main__":
-    generate_and_save_all_spectograms()
+    # Generate noisy audio files with SNR levels of 20 dB and 40 dB
+    generate_and_save_noisy_audio("audio", [20, 40])
+
+    # Generate spectrograms for the original and noisy audio files
+    generate_and_save_all_spectrograms("audio", snr_db_list=[0, 20, 40])
