@@ -92,7 +92,7 @@ def main():
     # 6. Model Training
     # ----------------------------
     # Fine-tune the model for a specified number of epochs
-    num_epochs = 10
+    num_epochs = 15
     learn.fine_tune(num_epochs)
 
     # ----------------------------
