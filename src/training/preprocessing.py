@@ -56,12 +56,16 @@ def divide_in_frames(audio_path: str, frame_duration_ms: int = 40) -> np.ndarray
     """
     # Read the audio data and sampling rate
     sampling_rate, audio_data = wavfile.read(audio_path)
+    print(f"sampling_rate {sampling_rate}")
 
     # Remove silence
     trimmed_audio = remove_silence(audio_data)
 
     # Calculate the number of samples per frame
     samples_per_frame = int(sampling_rate * frame_duration_ms / 1000)
+    # TODO samples_per_frame better to 1024
+    # TODO in report explain why it's better to have power of 2 of samples_per_frame
+    print(f"samples_per_frame {samples_per_frame}")
 
     # Reshape the audio data into frames
     num_frames = len(trimmed_audio) // samples_per_frame
@@ -177,7 +181,7 @@ def generate_and_save_all_spectograms():
     # Find all WAV files in the audio directory
     wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
 
-    for audio_path in wav_files:
+    for audio_path in wav_files[:1]:
         # Generate the spectrogram
         spectrogram = generate_spectrogram(audio_path, frame_duration_ms)
 
