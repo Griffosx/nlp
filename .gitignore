@@ -222,6 +222,14 @@ infra/cloud/*.pid
 
 temp
 
+report.aux
+report.bcf
+report.fdb_latexmk
+report.fls
+report.out
+report.run.xml
+report.synctex.gz
+report.toc
 
 audio
 audio_with_noise_20
