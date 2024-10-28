@@ -80,20 +80,6 @@ The objective of this project is to develop a system that recognizes ten distinc
 
 Each task is essential and must be completed in sequence to ensure the successful development and implementation of the speech recognition system.
 
-Before proceeding with the project tasks, a brief overview of the codebase will be provided to familiarize the reader with the implementation structure.
-
-\newpage
-
-
-% -------------------------------------------------------------------------------------------------
-% -------------------------------------------------------------------------------------------------
-% -------------------------------------------------------------------------------------------------
-
-
-\section{Codebase}
-TODO
-
-
 \newpage
 
 
@@ -230,39 +216,98 @@ By transforming the audio data into spectrograms, the model can leverage both te
 
 \section{Model Selection}
 
-\subsection{Choosing the Neural Network Architecture}
+\subsection{Testing Feasibility with ResNet-18}
 
-For this task, I selected a Convolutional Neural Network (CNN) architecture, which has shown excellent performance in processing data with spatial hierarchies, such as images and spectrograms. Although RNNs are traditionally used for sequential data like audio, recent studies have demonstrated that CNNs can effectively capture temporal patterns in speech data when applied to spectrogram-like features.
+Since I generated the audio files using an AI tool, I was initially unsure whether, with these particular settings, I could create an effective model from scratch. To test this feasibility, I first conducted a quick experiment using a pre-trained model with the fastai library. I chose fastai because, as far as I know, it’s one of the easiest and fastest ways to create a model. For this preliminary test, I selected the ResNet-18 model, as it offers a good balance between trainability and performance, making it a suitable candidate for our needs.
 
-\subsection{Model Architecture}
+The code used for this test is available at \texttt{src/model/resnet/fastai.py} 
+\\ (\href{https://github.com/Griffosx/nlp/blob/main/src/model/resnet/fastai.py}{https://github.com/Griffosx/nlp/blob/main/src/model/resnet/fastai.py}). The code is fairly straightforward, so I will just present the results here:
 
-The CNN model consists of the following layers:
+\begin{lstlisting}[language=, caption=Training Log for ResNet-18]
+epoch     train_loss  valid_loss  accuracy  time
+0         2.153422    1.550741    0.432692  00:29
+1         1.943995    1.141662    0.639423  00:30
+2         1.697767    0.778126    0.778846  00:31
+... other logs ...
+14        0.176312    0.125081    0.956731  00:30
+
+Classification Report:
+              precision    recall  f1-score   support
+
+     accents       1.00      0.85      0.92        13
+     analyse       0.95      1.00      0.97        19
+       audio       1.00      0.94      0.97        18
+      detect       0.96      1.00      0.98        25
+    emotions       0.96      1.00      0.98        26
+     extract       0.94      0.84      0.89        19
+    features       1.00      1.00      1.00        18
+   phonetics       1.00      0.94      0.97        18
+   recognise       0.90      0.96      0.93        28
+  transcribe       0.92      0.96      0.94        24
+
+    accuracy                           0.96       208
+\end{lstlisting}
+
+As shown in the training log, I trained the model for 15 epochs, achieving a final accuracy of approximately 96\% on the validation set (without noise), which was promising. This quick test confirmed that it is possible to create a good model using the data I generated. And this is what we will explore in the next section.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{confusion_matrix_resnet.png}
+\caption{Confusion matrix for the ResNet-18 model.}
+\label{fig:confusion_matrix_resnet}
+\end{figure}
+
+
+\subsection{Convolutional Neural Network}
+
+A Convolutional Neural Network (CNN) is a powerful and widely used architecture for image processing tasks due to its ability to automatically and adaptively learn spatial hierarchies of features. Building on the success of ResNet-18, which demonstrated strong performance in the previous section, I aimed to develop a simpler CNN model from scratch using only NumPy. This approach provides a deeper understanding of the underlying mechanics of CNNs and offers greater flexibility in customizing the architecture.
+
+The CNN model I developed is significantly simpler than ResNet-18, focusing on essential convolutional and fully connected layers without the residual connections that characterize ResNet architectures. The simplicity of the model makes it easier to train and faster to evaluate, while still maintaining competitive performance for the task at hand, as we will see. The architecture is detailed in the following listing, and the complete code is available on GitHub: \href{https://github.com/Griffosx/nlp/blob/main/src/model/cnn/model.py}{https://github.com/Griffosx/nlp/blob/main/src/model/cnn/model.py}.
+
+\begin{lstlisting}[language=Python, caption=CNN Model Architecture]
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 72 * 72, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, num_classes)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 72 * 72)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+\end{lstlisting}
+
+\paragraph{Model Architecture Overview}
 
 \begin{itemize}
-    \item \textbf{Input Layer}: Accepts the MFCC feature vectors reshaped as images.
-    \item \textbf{Convolutional Layers}: Extract local patterns in the data.
-    \item \textbf{Pooling Layers}: Reduce dimensionality and computation.
-    \item \textbf{Fully Connected Layers}: Integrate the features for classification.
-    \item \textbf{Output Layer}: Uses a softmax activation for multi-class classification.
+    \item \textbf{Convolutional Layers:} The model begins with two convolutional layers. The first layer takes an input with 3 channels (corresponding to RGB spectrogram images) and applies 6 filters of size \(5 \times 5\). The second convolutional layer takes the 6 feature maps from the first layer and applies 16 filters of the same size. These layers are responsible for extracting spatial features from the input images.
+    
+    \item \textbf{Activation and Pooling:} After each convolutional layer, a ReLU activation function introduces non-linearity, allowing the network to learn more complex patterns. Following the activation, a max pooling layer with a \(2 \times 2\) window reduces the spatial dimensions of the feature maps. Although only one pooling layer (\texttt{self.pool}) is defined in the model, it is applied after both convolutional layers in the forward pass, effectively performing two separate pooling operations. This helps decrease computational complexity and control overfitting by reducing the size of the feature maps.
+    
+    \item \textbf{Fully Connected Layers:} After flattening the feature maps, the model includes three fully connected layers. The first two layers (\texttt{fc1} and \texttt{fc2}) reduce the dimensionality of the data, while the final layer (\texttt{fc3}) maps the features to the number of target classes, producing the final class scores.
 \end{itemize}
 
-\subsection{Model Summary}
+\paragraph{Supporting Scripts}
 
-The model architecture is summarized below:
+The \texttt{src/model/cnn} directory contains additional scripts that facilitate the training and evaluation of the CNN model:
 
-\begin{lstlisting}[language=Python, caption=Model Architecture]
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+\begin{itemize}
+    \item \texttt{dataset.py}: This script defines the \texttt{SpectrogramDataset} class, which handles the loading and preprocessing of spectrogram images. The \texttt{get\_data\_loaders} function is responsible for creating data loaders that efficiently feed data in batches during training and validation.
+    
+    \item \texttt{train.py}: This script includes functions for training the CNN model. It manages the training loop, computes loss, updates model weights, and saves the trained model to disk for future use.
+    
+    \item \texttt{test.py}: This script contains functions to evaluate the trained model's performance on test data. It includes procedures for testing the model under various noise levels to assess robustness and generates confusion matrices to visualize classification performance across different classes.
+\end{itemize}
 
-model = Sequential()
-model.add(Conv2D(32, kernel_size=(3,3), activation='relu', input_shape=(13, 13, 1)))
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Conv2D(64, kernel_size=(3,3), activation='relu'))
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Flatten())
-model.add(Dense(128, activation='relu'))
-model.add(Dense(10, activation='softmax'))
-\end{lstlisting}
+By implementing a CNN from scratch and organizing the supporting scripts effectively, this approach ensures a clear and modular workflow for training, evaluating, and refining the speech recognition model.
 
 \newpage
 
@@ -274,37 +319,7 @@ model.add(Dense(10, activation='softmax'))
 
 \section{Model Training}
 
-\subsection{Training Parameters}
 
-The model was trained using the following parameters:
-
-\begin{itemize}
-    \item \textbf{Loss Function}: Categorical Cross-Entropy
-    \item \textbf{Optimizer}: Adam
-    \item \textbf{Learning Rate}: 0.001
-    \item \textbf{Batch Size}: 32
-    \item \textbf{Number of Epochs}: 50
-\end{itemize}
-
-\subsection{Data Splitting}
-
-The dataset was split into training, validation, and test sets with the following proportions:
-
-\begin{itemize}
-    \item \textbf{Training Set}: 70\%
-    \item \textbf{Validation Set}: 15\%
-    \item \textbf{Test Set}: 15\%
-\end{itemize}
-
-\subsection{Training Process}
-
-The model was trained on the training set, and its performance was monitored on the validation set to prevent overfitting. Early stopping was implemented to halt training when the validation loss stopped improving.
-
-\begin{lstlisting}[language=Python, caption=Model Training]
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
-                    epochs=50, batch_size=32, callbacks=[early_stopping])
-\end{lstlisting}
 
 \newpage
 
@@ -316,18 +331,7 @@ history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
 
 \section{Model Testing}
 
-\subsection{Performance Metrics}
 
-The model was evaluated on the test set using the following metrics:
-
-\begin{itemize}
-    \item \textbf{Accuracy}: The proportion of correctly classified samples.
-    \item \textbf{Confusion Matrix}: Provides insight into the types of classification errors.
-\end{itemize}
-
-\subsection{Results}
-
-The model achieved an accuracy of \textbf{95\%} on the test set, indicating strong performance in recognizing the 10 distinct spoken words. The confusion matrix is shown in Figure.
 
 \newpage
 

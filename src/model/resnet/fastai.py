@@ -81,22 +81,14 @@ def main():
     print(learn.model)
 
     # ----------------------------
-    # 5. Learning Rate Finder
-    # ----------------------------
-    # Uncomment the following lines to find an optimal learning rate
-    # learn.lr_find()
-    # learn.recorder.plot_lr_find()
-    # plt.show()
-
-    # ----------------------------
-    # 6. Model Training
+    # 5. Model Training
     # ----------------------------
     # Fine-tune the model for a specified number of epochs
     num_epochs = 15
     learn.fine_tune(num_epochs)
 
     # ----------------------------
-    # 7. Model Evaluation
+    # 6. Model Evaluation
     # ----------------------------
     # Generate classification interpretation
     interp = ClassificationInterpretation.from_learner(learn)
@@ -120,26 +112,6 @@ def main():
     # Generate the classification report
     print("Classification Report:")
     print(classification_report(y_true_np, y_pred_np, target_names=dls.vocab))
-
-    # ----------------------------
-    # 8. Model Saving
-    # ----------------------------
-    # Save the trained model's weights
-    learn.save("resnet18_spectrograms")
-    print("Model saved to 'models/resnet18_spectrograms.pth'")
-
-    # ----------------------------
-    # 9. Model Loading (For Inference or Further Training)
-    # ----------------------------
-    # To load the model later:
-    # learn_loaded = cnn_learner(
-    #     dls,
-    #     resnet18,
-    #     metrics=accuracy,
-    #     model_dir='models'
-    # )
-    # learn_loaded.load('resnet18_spectrograms')
-    # print("Model loaded from 'models/resnet18_spectrograms.pth'")
 
 
 if __name__ == "__main__":
