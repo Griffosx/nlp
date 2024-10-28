@@ -46,8 +46,6 @@ def divide_in_frames(audio_path: str) -> np.ndarray:
     # Remove silence
     trimmed_audio = remove_silence(audio_data)
 
-    # TODO in report explain why it's better to have power of 2 of samples_per_frame
-
     # Reshape the audio data into frames
     num_frames = len(trimmed_audio) // samples_per_frame
     frames = np.reshape(
@@ -86,9 +84,9 @@ def add_noise(audio_data: np.ndarray, snr_db: int = 20) -> np.ndarray:
     return noisy_audio
 
 
-def _spectrogram(frame: np.ndarray) -> np.ndarray:
+def _magnitute_spectrum(frame: np.ndarray) -> np.ndarray:
     """
-    Create a spectrogram from a given audio frame using the Short-Time Fourier Transform (STFT).
+    Calculate magnitude spectrum from a given audio frame using the Short-Time Fourier Transform (STFT).
     """
     fft_result = np.fft.fft(frame)
     magnitude_spectrum = np.abs(
@@ -97,25 +95,23 @@ def _spectrogram(frame: np.ndarray) -> np.ndarray:
     return magnitude_spectrum
 
 
-def generate_spectrogram(audio_path: str) -> np.ndarray:
+def generate_spectrums(audio_path: str) -> np.ndarray:
     """
     Generate a spectrogram from an audio file after removing silence.
     """
-    # Divide the audio into frames after removing silence
+    # Divide the audio into frames after removing silence and apply Hamming window
     frames = divide_in_frames(audio_path)
 
-    # Apply Hamming window and create spectrogram for each frame
-    spectrograms = [_spectrogram(frame) for frame in frames]
+    # Create spectrums for each frame
+    spectrums = [_magnitute_spectrum(frame) for frame in frames]
 
     # Stack the spectrograms into a 2D array (frequency x time)
-    spectrogram_2d = np.array(spectrograms).T
+    spectrums_2d = np.array(spectrums).T
 
-    return spectrogram_2d
+    return spectrums_2d
 
 
-def save_spectrogram_image(
-    spectrogram_2d: np.ndarray, filename: str, axes: bool
-) -> None:
+def save_spectrogram_image(spectrums_2d: np.ndarray, filename: str, axes: bool) -> None:
     """
     Save the 2D spectrogram image with optional axes, labels, titles, and colorbar.
     """
@@ -124,7 +120,7 @@ def save_spectrogram_image(
 
     # Display the spectrogram
     plt.imshow(
-        10 * np.log10(spectrogram_2d + 1e-10),
+        10 * np.log10(spectrums_2d + 1e-10),
         origin="lower",
         aspect="auto",
         cmap="inferno",
@@ -172,10 +168,9 @@ def _generate_and_save_all_spectograms(audio_dir: str):
     # Find all WAV files in the audio directory
     wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
 
-    # TODO add for cycle to add noise 20 and 40 db and generate relative
     for audio_path in wav_files:
-        # Generate the spectrogram
-        spectrogram = generate_spectrogram(audio_path)
+        # Generate the spectrums
+        spectrogram = generate_spectrums(audio_path)
 
         # Extract the base filename without extension
         base_name = os.path.splitext(os.path.basename(audio_path))[0]
@@ -257,7 +252,7 @@ def generate_and_save_all_spectrograms(audio_dir: str, snr_db_list: list[int] = 
 
         for audio_path in wav_files:
             # Generate the spectrogram
-            spectrogram = generate_spectrogram(audio_path)
+            spectrogram = generate_spectrums(audio_path)
 
             # Extract the base filename without extension
             base_name = os.path.splitext(os.path.basename(audio_path))[0]

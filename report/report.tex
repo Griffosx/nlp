@@ -157,48 +157,70 @@ By incorporating multiple speakers and varying speech speeds, the dataset captur
 
 \section{Feature Extraction}
 
-\subsection{Importance of Feature Extraction}
+Feature extraction is a critical step in developing any machine learning model for audio classification. Raw audio signals are high-dimensional and contain redundant information that may not be directly useful for classification tasks. Therefore, it is necessary to transform these signals into a set of features that effectively capture the essential information required for distinguishing between different classes—in this case, spoken words.
 
-To train a neural network on audio data, it's necessary to convert the raw audio signals into a set of features that capture the essential information needed for classification. Feature extraction reduces the complexity of the data while preserving the relevant characteristics that contribute to the model's performance.
+\subsection{Spectrograms}
 
-\subsection{Mel-Frequency Cepstral Coefficients (MFCCs)}
+For this project, I chose to use spectrograms as the primary feature representation of the audio data. A spectrogram is a visual representation of the frequency spectrum of an audio signal as it varies with time. It is a two-dimensional plot where:
 
-MFCCs are a widely used feature in speech recognition tasks. They represent the short-term power spectrum of a sound, based on a linear cosine transform of a log power spectrum on a nonlinear mel scale of frequency. The steps to compute MFCCs are:
+\begin{itemize}
+\item The \textbf{x-axis} represents time,
+\item The \textbf{y-axis} represents frequency, and
+\item The \textbf{color intensity} at each point indicates the magnitude (amplitude) of a particular frequency at a given time.
+\end{itemize}
+
+Spectrograms are particularly useful in speech recognition tasks because they effectively capture both temporal and spectral information of the audio signal, which are crucial for distinguishing between different phonetic elements in spoken words.
+
+\subsubsection{Spectrogram Generation Process}
+
+To generate spectrograms from the audio data, the following steps were performed:
 
 \begin{enumerate}
-    \item \textbf{Pre-emphasis}: Increase the energy of high frequencies.
-    \item \textbf{Framing}: Divide the signal into short frames.
-    \item \textbf{Windowing}: Apply a window function to each frame.
-    \item \textbf{Fast Fourier Transform (FFT)}: Compute the spectrum of each frame.
-    \item \textbf{Mel Filter Bank}: Apply a set of filters to model human auditory perception.
-    \item \textbf{Logarithm}: Take the logarithm of the filter bank energies.
-    \item \textbf{Discrete Cosine Transform (DCT)}: Decorrelate the energies to obtain the MFCCs.
+\item \textbf{Signal Framing:} The continuous audio signal was divided into short frames of equal length.
+\item \textbf{Windowing:} A window function, specifically the Hamming window, was applied to each frame to minimize spectral leakage.
+\item \textbf{Fourier Transform:} The Discrete Fourier Transform (DFT) was computed on each windowed frame using the Fast Fourier Transform (FFT) algorithm.
+\item \textbf{Magnitude Spectrum:} The magnitude of the Fourier Transform was calculated to obtain the amplitude of each frequency component.
+\item \textbf{Power Spectrum:} The magnitude spectrum was squared to obtain the power spectrum, representing the power of each frequency component.
+\item \textbf{Logarithmic Scaling:} The power values were converted to a logarithmic scale (e.g., decibels) to mimic human auditory perception.
+\item \textbf{Spectrogram Plotting:} The resulting values were plotted to generate the spectrogram image.
 \end{enumerate}
 
-MFCCs effectively capture the timbral qualities of speech, making them suitable for distinguishing between different spoken words.
+\subsubsection{Implementation Details}
 
-\subsection{Implementation of Feature Extraction}
+Instead of relying on existing libraries like LibROSA to perform this transformation, I decided to implement the spectrogram generation process using standard NumPy functions. This approach allowed me to gain a deeper understanding of each step involved in creating spectrograms and provided greater control over the parameters used.
 
-I used the \texttt{librosa} library in Python to compute the MFCCs for each audio file. The following code snippet demonstrates the process:
+The code used to generate all the spectrograms is available in the file \texttt{preprocessing.py}, which can be found at \href{https://github.com/Griffosx/nlp/blob/main/src/model/preprocessing.py}{https://github.com/Griffosx/nlp/blob/main/src/model/preprocessing.py}.
 
-\begin{lstlisting}[language=Python, caption=MFCC Feature Extraction]
-import librosa
-import numpy as np
+While the full code is available in the repository, I would like to highlight some key aspects of the implementation:
 
-def extract_mfcc(file_path):
-    y, sr = librosa.load(file_path, sr=44100)
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-    mfcc_scaled = np.mean(mfcc.T, axis=0)
-    return mfcc_scaled
-\end{lstlisting}
+\begin{itemize}
+\item \textbf{Window Function:} The Hamming window was generated using \texttt{numpy.hamming}, which helps in reducing spectral leakage by tapering the beginning and end of each frame.
+\item \textbf{Fast Fourier Transform:} The FFT was computed using \texttt{numpy.fft.fft}, an efficient algorithm for computing the DFT.
+\item \textbf{Frame Length:} The number of samples per frame was set to 1024. Given the audio sample rate of 44.1kHz, this corresponds to a frame duration of approximately 23 milliseconds, which is a typical value for speech processing.
+\item \textbf{Silence Removal:} Since the generated audio files had moments of silence at the beginning and end due to their exact durations (either 1 or 2 seconds), a silence removal function (\verb|remove_silence|) was applied before framing and windowing. This function detects and removes periods of silence, focusing the analysis on the actual speech content.
+\item \textbf{Spectrogram Dimensions:} The spectrograms were plotted as square images with dimensions of 700x700 pixels, which provided a good balance between image quality and computational efficiency.
+\end{itemize}
 
-The function \texttt{extract\_mfcc} loads the audio file and computes the MFCCs, averaging them over time to obtain a fixed-length feature vector for each audio file.
+Choosing a frame length of 1024 samples ensures that the FFT is efficient (as 1024 is a power of two) and provides sufficient frequency resolution for the speech signals. Removing silence from the audio files helps focus the model on the actual speech content and reduces unnecessary computation.
 
-\subsection{Dataset Preparation}
+\subsubsection{Noise Augmentation}
 
-After extracting the MFCCs for all audio files, I compiled the feature vectors into a dataset suitable for training the neural network. Each feature vector is associated with a label corresponding to one of the 10 words.
+In addition to the spectrogram generation, the \texttt{preprocessing.py} file contains functions for generating noise-added audio samples and their corresponding spectrograms. These were used during the testing phase to assess the model’s robustness to noisy inputs, simulating real-world scenarios where background noise is present.
 
-\newpage
+\subsection{Spectrogram Examples}
+
+Figure~\ref{fig:spectrograms} shows examples of spectrograms created for the words \textit{accents} and \textit{phonetics}, with different levels of noise added.
+
+By transforming the audio data into spectrograms, the model can leverage both temporal and frequency information present in the speech signals. This representation serves as an effective input for convolutional neural networks (CNNs), which are adept at extracting spatial hierarchies and patterns from image data.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{spectrograms.png}
+\caption{Spectrograms of the words \textit{accents} and \textit{phonetics} with varying levels of noise.}
+\label{fig:spectrograms}
+\end{figure}
+
+\clearpage
 
 
 % -------------------------------------------------------------------------------------------------
