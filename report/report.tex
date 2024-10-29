@@ -90,6 +90,8 @@ Each task is essential and must be completed in sequence to ensure the successfu
 
 \section{Dataset Creation}
 
+Dataset creation involves gathering and preparing the data needed to train and test the model. In this project, it includes generating audio samples for ten target words, converting them into spectrograms, and organizing them into a structured dataset. This dataset serves as the foundation for training an effective speech recognition system.
+
 \subsection{Synthesizing Audio Data}
 
 Instead of relying on existing datasets, I decided to synthesize the audio data using an online tool called \href{https://lovo.ai}{Lovo.ai}. Lovo.ai provides APIs that allow the programmatic generation of audio files using different speakers and parameters. It offers more than 100 English speakers with various pronunciations (American, British, Australian, etc.), genders, and ages.
@@ -167,7 +169,7 @@ To generate spectrograms from the audio data, the following steps were performed
 \item \textbf{Fourier Transform:} The Discrete Fourier Transform (DFT) was computed on each windowed frame using the Fast Fourier Transform (FFT) algorithm.
 \item \textbf{Magnitude Spectrum:} The magnitude of the Fourier Transform was calculated to obtain the amplitude of each frequency component.
 \item \textbf{Power Spectrum:} The magnitude spectrum was squared to obtain the power spectrum, representing the power of each frequency component.
-\item \textbf{Logarithmic Scaling:} The power values were converted to a logarithmic scale (e.g., decibels) to mimic human auditory perception.
+\item \textbf{Logarithmic Scaling:} The power values were converted to a logarithmic scale.
 \item \textbf{Spectrogram Plotting:} The resulting values were plotted to generate the spectrogram image.
 \end{enumerate}
 
@@ -216,6 +218,8 @@ By transforming the audio data into spectrograms, the model can leverage both te
 
 \section{Model Selection}
 
+Model selection is the process of choosing the most suitable algorithm and architecture to best solve the problem at hand. In this project, selecting an appropriate model involves evaluating different neural network architectures to identify the one that can most effectively classify spectrogram images of spoken words.
+
 \subsection{Testing Feasibility with ResNet-18}
 
 Since I generated the audio files using an AI tool, I was initially unsure whether, with these particular settings, I could create an effective model from scratch. To test this feasibility, I first conducted a quick experiment using a pre-trained model with the fastai library. I chose fastai because, as far as I know, it’s one of the easiest and fastest ways to create a model. For this preliminary test, I selected the ResNet-18 model, as it offers a good balance between trainability and performance, making it a suitable candidate for our needs.
@@ -226,14 +230,11 @@ The code used for this test is available at \texttt{src/model/resnet/fastai.py}
 \begin{lstlisting}[language=, caption=Training Log for ResNet-18]
 epoch     train_loss  valid_loss  accuracy  time
 0         2.153422    1.550741    0.432692  00:29
-1         1.943995    1.141662    0.639423  00:30
-2         1.697767    0.778126    0.778846  00:31
 ... other logs ...
 14        0.176312    0.125081    0.956731  00:30
 
 Classification Report:
               precision    recall  f1-score   support
-
      accents       1.00      0.85      0.92        13
      analyse       0.95      1.00      0.97        19
        audio       1.00      0.94      0.97        18
@@ -269,8 +270,8 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
+        self.pool = nn.MaxPool2d(2, 2)
         self.fc1 = nn.Linear(16 * 72 * 72, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, num_classes)
@@ -292,7 +293,7 @@ class Net(nn.Module):
     
     \item \textbf{Activation and Pooling:} After each convolutional layer, a ReLU activation function introduces non-linearity, allowing the network to learn more complex patterns. Following the activation, a max pooling layer with a \(2 \times 2\) window reduces the spatial dimensions of the feature maps. Although only one pooling layer (\texttt{self.pool}) is defined in the model, it is applied after both convolutional layers in the forward pass, effectively performing two separate pooling operations. This helps decrease computational complexity and control overfitting by reducing the size of the feature maps.
     
-    \item \textbf{Fully Connected Layers:} After flattening the feature maps, the model includes three fully connected layers. The first two layers (\texttt{fc1} and \texttt{fc2}) reduce the dimensionality of the data, while the final layer (\texttt{fc3}) maps the features to the number of target classes, producing the final class scores.
+    \item \textbf{Fully Connected Layers:} After flattening the feature maps, the model includes three fully connected layers. The first two layers (\texttt{fc1} and \texttt{fc2}) reduce the dimensionality of the data, while the final layer (\texttt{fc3}) maps the features to the number of target classes - that are our 10 words - producing the final class scores.
 \end{itemize}
 
 \paragraph{Supporting Scripts}
@@ -319,6 +320,90 @@ By implementing a CNN from scratch and organizing the supporting scripts effecti
 
 \section{Model Training}
 
+Model training is the process of teaching a machine learning model to recognize patterns in data. In this project, training involves feeding the neural network model with labeled spectrogram images and adjusting its internal parameters so it learns to associate specific patterns in the images with the correct spoken words. Through iterative adjustments, the model improves its accuracy in predicting the classes of unseen data, resulting in a reliable speech recognition system.
+
+\subsection{Implementation details}
+
+The training phase handled by functions defined in the \texttt{train.py} file. As expected, there is a \texttt{main\_train} function that manages and executes the training process, relying on the code defined in \texttt{model.py} and \texttt{dataset.py}.
+
+Since it is a central part of the project, I will include this main function for reference:
+
+\begin{lstlisting}[language=Python, caption=Main Training Function]
+from model.cnn.dataset import get_data_loaders
+from model.cnn.model import define_model, save_model
+
+def main_train():
+    root_dir = "spectrograms"
+    trainloader, _testloader, classes, _idx_to_class = \
+        get_data_loaders(root_dir)
+    num_classes = len(classes)
+    net = define_model(num_classes)
+
+    # Define loss function and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+    # Train the network
+    train_model(net, trainloader, criterion, optimizer, num_epochs=15)
+
+    # Save the model
+    save_model(net, model_path="output_data/model.pth")
+\end{lstlisting}
+
+To perform the training loop, executed by the \texttt{train\_model} function, we first need to load the data loaders via \texttt{get\_data\_loaders} and define the model via \texttt{define\_model}, which returns an instance of the class discussed in the previous section. After the training loop, the model is saved to a file, which will be loaded during the testing phase described in the next section.
+
+It is worth noting the method used to split the dataset into training and testing sets in the \texttt{get\_data\_loaders} function. I decided to use the \texttt{StratifiedShuffleSplit} class from scikit-learn to ensure that all classes have a similar proportion in both sets. The ratio of 0.8 is enforced by the \texttt{train\_ratio} parameter, so that 80\% of the data is in the training set and 20\% is in the test set. Another noteworthy aspect is that before training, all images are resized to 300x300 pixels, which results in a much faster training loop while maintaining good accuracy. The relevant code snippet is shown in Listing~\ref{lst:main_training_function}.
+By resizing the images and ensuring a stratified split of the dataset, the training process becomes more efficient without sacrificing model performance.
+
+\newpage
+
+\begin{lstlisting}[language=Python, caption=Dataset Preparation and Splitting, label={lst:main_training_function}]
+from sklearn.model_selection import StratifiedShuffleSplit
+# ... other code ...
+
+def get_data_loaders(
+    root_dir,
+    batch_size=4,
+    num_workers=2,
+    seed=42,
+    train_ratio=0.8
+):
+    """
+    Splits the dataset into training and testing sets with a fixed seed and ensures that each class is equally represented in both sets (stratified split).
+    """
+    # Define transformations
+    transform = transforms.Compose(
+        [
+            transforms.Resize((300, 300)),
+            transforms.ToTensor(),
+        ]
+    )
+
+    # Initialize the dataset
+    dataset = SpectrogramDataset(
+        root_dir=root_dir,
+        transform=transform
+    )
+
+    # Initialize StratifiedShuffleSplit
+    sss = StratifiedShuffleSplit(
+        n_splits=1,
+        train_size=train_ratio,
+        random_state=seed
+    )
+
+    # Extract targets for stratification
+    targets = dataset.targets
+
+    # Obtain train and test indices
+    train_indices, test_indices = next(
+        sss.split(np.zeros(len(targets)), targets)
+    )
+
+    # ... other code ...
+\end{lstlisting}
+
+
 
 
 \newpage
@@ -331,27 +416,13 @@ By implementing a CNN from scratch and organizing the supporting scripts effecti
 
 \section{Model Testing}
 
+Model testing is the process of evaluating a trained model's performance on new, unseen data. In this project, testing involves using a separate set of labeled spectrogram images that were not part of the training phase. By assessing the model’s predictions against the true labels in this test set, we can measure its accuracy and generalizability, ensuring it performs well on diverse data and accurately recognizes spoken words outside of the training set.
 
-
-\newpage
 
 
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 
-
-\section{Conclusion}
-
-The project successfully developed a speech recognition system capable of recognizing 10 distinct spoken words with high accuracy. By synthesizing a diverse dataset and using a CNN model, the system demonstrated robustness to variations in speakers and speech speeds. Future work could involve expanding the vocabulary, incorporating real-world noisy data, and exploring more sophisticated models like Recurrent Neural Networks or Transformers.
-
-\section*{References}
-
-\begin{enumerate}
-    \item Lovo.ai API Documentation: \url{https://docs.genny.lovo.ai/reference/intro/getting-started}
-    \item Librosa Documentation: \url{https://librosa.org/doc/latest/index.html}
-    \item TensorFlow Documentation: \url{https://www.tensorflow.org/}
-    \item S. Haykin, \textit{Neural Networks and Learning Machines}, 3rd ed., Prentice Hall, 2008.
-\end{enumerate}
 
 \end{document}

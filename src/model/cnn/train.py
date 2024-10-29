@@ -19,7 +19,6 @@ def train_model(net, trainloader, criterion, optimizer, num_epochs=2):
             optimizer.step()
 
             running_loss += loss.item()
-            # Optionally, print statistics
             if i % 50 == 49:  # Print every 50 mini-batches
                 print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 50:.3f}")
                 running_loss = 0.0
