@@ -234,11 +234,10 @@ report.toc
 audio
 audio_with_noise_20
 audio_with_noise_40
-audio_tts
-audio_tts_generated
 spectrograms
 spectrograms_with_noise_20
 spectrograms_with_noise_40
 spectrograms_with_axes
 output_data
-f0_contours
+
+tts

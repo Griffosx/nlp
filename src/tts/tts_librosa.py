@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 import numpy as np
 import librosa
 import librosa.display
@@ -7,14 +7,18 @@ import matplotlib.pyplot as plt
 import soundfile as sf
 from scipy.io import wavfile
 from pesq import pesq
+import os
+
+
+# constants
+n_fft = 1024
+hop_length = 256
+n_mels = 80
 
 
 def compute_mel_spectrogram(
     audio_data: np.ndarray,
     sample_rate: int,
-    n_fft: int = 1024,
-    hop_length: int = 256,
-    n_mels: int = 80,
 ) -> np.ndarray:
     """
     Compute the Mel spectrogram from an audio signal.
@@ -46,9 +50,7 @@ def compute_mel_spectrogram(
     return mel_spectrogram
 
 
-def invert_mel_spectrogram(
-    mel_spectrogram: np.ndarray, sample_rate: int, n_fft: int = 1024, n_mels: int = 80
-) -> np.ndarray:
+def invert_mel_spectrogram(mel_spectrogram: np.ndarray, sample_rate: int) -> np.ndarray:
     """
     Invert a Mel spectrogram back to a magnitude spectrogram.
 
@@ -74,12 +76,7 @@ def invert_mel_spectrogram(
     return magnitude_spectrogram_approx
 
 
-def reconstruct_waveform(
-    magnitude_spectrogram: np.ndarray,
-    n_iter: int = 60,
-    hop_length: int = 256,
-    n_fft: int = 1024,
-) -> np.ndarray:
+def reconstruct_waveform(magnitude_spectrogram: np.ndarray) -> np.ndarray:
     """
     Reconstruct a time-domain waveform from a magnitude spectrogram using the Griffin-Lim algorithm.
 
@@ -92,6 +89,7 @@ def reconstruct_waveform(
     Returns:
         reconstructed_audio (np.ndarray): Reconstructed audio time series.
     """
+    n_iter = 60
     # Use Griffin-Lim algorithm to estimate the phase and reconstruct the signal
     reconstructed_audio = librosa.griffinlim(
         magnitude_spectrogram, n_iter=n_iter, hop_length=hop_length, win_length=n_fft
@@ -99,7 +97,7 @@ def reconstruct_waveform(
     return reconstructed_audio
 
 
-def save_audio(audio_data: np.ndarray, sample_rate: int, output_file: str) -> None:
+def save_audio(audio_data: np.ndarray, sample_rate: int, filename: str) -> None:
     """
     Save an audio time series to a WAV file.
 
@@ -108,7 +106,92 @@ def save_audio(audio_data: np.ndarray, sample_rate: int, output_file: str) -> No
         sample_rate (int): Sampling rate.
         output_file (str): Path to the output file.
     """
+    output_file = f"tts/audio_tts_generated/{filename}.wav"
     sf.write(output_file, audio_data, sample_rate)
+    return output_file
+
+
+def save_mel_spectrogram_plot(
+    mel_spectrogram: np.ndarray,
+    sample_rate: int,
+    filename: str,
+) -> None:
+    """
+    Plot and save the Mel spectrogram.
+    """
+    mel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)
+    plt.figure(figsize=(14, 5))
+    librosa.display.specshow(
+        mel_spectrogram_db,
+        x_axis="time",
+        y_axis="mel",
+        sr=sample_rate,
+        hop_length=hop_length,
+        cmap="viridis",
+    )
+    plt.colorbar(format="%+2.0f dB")
+    plt.title("Mel Spectrogram")
+    plt.savefig(
+        f"tts/mel_spectrograms/{filename}.png", bbox_inches="tight", pad_inches=0.1
+    )
+    plt.close()
+
+
+def save_waveform_plot(
+    audio_data: np.ndarray, sample_rate: int, filename: str, title: str = "Waveform"
+) -> None:
+    """
+    Plot and save the waveform of the audio data.
+    """
+    plt.figure(figsize=(14, 5))
+    librosa.display.waveshow(audio_data, sr=sample_rate)
+    plt.title(title)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.savefig(f"tts/waveforms/{filename}.png", bbox_inches="tight", pad_inches=0.1)
+    plt.close()
+
+
+def save_waveforms(
+    original_audio_data: np.ndarray,
+    reconstructed_audio_data: np.ndarray,
+    sample_rate: int,
+    filename: str,
+) -> None:
+    """
+    Plot and save the comparison of original and reconstructed waveforms.
+    """
+    # Save the original waveform plot
+    save_waveform_plot(original_audio_data, sample_rate, filename)
+
+    # Save the reconstructed waveform plot
+    save_waveform_plot(
+        reconstructed_audio_data,
+        sample_rate,
+        f"reconstructed_{filename}",
+        title="Reconstructed Waveform",
+    )
+
+    # Save the comparison
+    plt.figure(figsize=(14, 10))
+
+    plt.subplot(2, 1, 1)
+    librosa.display.waveshow(original_audio_data, sr=sample_rate)
+    plt.title("Original Waveform")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+
+    plt.subplot(2, 1, 2)
+    librosa.display.waveshow(reconstructed_audio_data, sr=sample_rate)
+    plt.title("Reconstructed Waveform")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+
+    plt.tight_layout()
+    plt.savefig(
+        f"tts/waveform_comparisons/{filename}.png", bbox_inches="tight", pad_inches=0.1
+    )
+    plt.close()
 
 
 def save_f0_contour(
@@ -149,7 +232,10 @@ def save_f0_contour(
     plt.ylabel("Frequency (Hz)")
     plt.title(title)
     # Save with default bounding box and padding
-    plt.savefig(f"f0_contours/{img_filename}.png", bbox_inches="tight", pad_inches=0.1)
+    plt.savefig(
+        f"tts/f0_contours/{img_filename}.png", bbox_inches="tight", pad_inches=0.1
+    )
+    plt.close()
 
 
 def extract_f0(
@@ -203,18 +289,34 @@ def perform_pesq_evaluation(
     return pesq_score
 
 
-def tts(original_audio_path: str) -> None:
+def tts_pipeline(original_audio_path: str) -> None:
     """
     Text-to-Speech processing pipeline.
     """
-    filename = original_audio_path.split("/")[1]
-    generated_audio_path = f"audio_tts_generated/{filename}"
+    filename = original_audio_path.split("/")[-1].split(".")[0]
+
+    # Ensure that all output directories exist
+    os.makedirs("tts/audio_tts_generated", exist_ok=True)
+    os.makedirs("tts/mel_spectrograms", exist_ok=True)
+    os.makedirs("tts/waveforms", exist_ok=True)
+    os.makedirs("tts/waveform_comparisons", exist_ok=True)
+    os.makedirs("tts/f0_contours", exist_ok=True)
 
     # Load the original audio
-    audio_data, sample_rate = librosa.load(original_audio_path, sr=None)
+    original_audio_data, sample_rate = librosa.load(original_audio_path, sr=None)
 
     # Compute the Mel spectrogram
-    mel_spectrogram = compute_mel_spectrogram(audio_data, sample_rate)
+    mel_spectrogram = compute_mel_spectrogram(
+        original_audio_data,
+        sample_rate,
+    )
+
+    # Save the Mel spectrogram plot
+    save_mel_spectrogram_plot(
+        mel_spectrogram,
+        sample_rate,
+        filename,
+    )
 
     # Invert the Mel spectrogram back to a magnitude spectrogram
     magnitude_spectrogram_approx = invert_mel_spectrogram(mel_spectrogram, sample_rate)
@@ -223,10 +325,13 @@ def tts(original_audio_path: str) -> None:
     reconstructed_audio = reconstruct_waveform(magnitude_spectrogram_approx)
 
     # Save the reconstructed audio
-    save_audio(reconstructed_audio, sample_rate, generated_audio_path)
+    generated_audio_path = save_audio(reconstructed_audio, sample_rate, filename)
+
+    # Save waveforms
+    save_waveforms(original_audio_data, reconstructed_audio, sample_rate, filename)
 
     # Plot F0 contour comparison
-    save_f0_contour(filename, audio_data, reconstructed_audio, sample_rate)
+    save_f0_contour(filename, original_audio_data, reconstructed_audio, sample_rate)
 
     # Perform objective evaluation (PESQ)
     perform_pesq_evaluation(original_audio_path, generated_audio_path)
@@ -242,7 +347,7 @@ def main() -> None:
     Raises:
         FileNotFoundError: If the 'audio_tts' directory does not exist.
     """
-    audio_directory = Path("audio_tts")
+    audio_directory = Path("tts/audio_tts")
 
     if not audio_directory.exists() or not audio_directory.is_dir():
         raise FileNotFoundError(
@@ -253,7 +358,7 @@ def main() -> None:
 
     for wav_file in wav_files:
         print(f"Processing file: {wav_file}")
-        tts(str(wav_file))
+        tts_pipeline(str(wav_file))
 
 
 if __name__ == "__main__":
