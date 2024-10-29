@@ -321,11 +321,11 @@ By implementing a CNN from scratch and organizing the supporting scripts effecti
 
 \section{Model Training}
 
-Model training is the process of teaching a machine learning model to recognize patterns in data. In this project, training involves feeding the neural network model with labeled spectrogram images and adjusting its internal parameters so it learns to associate specific patterns in the images with the correct spoken words. Through iterative adjustments, the model improves its accuracy in predicting the classes of unseen data, resulting in a reliable speech recognition system.
+Model training is the process of teaching a machine learning model to recognize patterns in data. In this project, training involves feeding the neural network model with labeled spectrogram images and adjusting its internal parameters so it learns to associate specific patterns in the images with the correct spoken words. Through iterative adjustments, the model improves its accuracy in predicting the classes of unseen data, resulting in a reliable recognition system.
 
 \subsection{Implementation details}
 
-The training phase handled by functions defined in the \texttt{train.py} file. As expected, there is a \texttt{main\_train} function that manages and executes the training process, relying on the code defined in \texttt{model.py} and \texttt{dataset.py}.
+The training phase is handled by functions defined in the \texttt{train.py} file. As expected, there is a \texttt{main\_train} function that manages and executes the training process, relying on the code defined in \texttt{model.py} and \texttt{dataset.py}.
 
 Since it is a central part of the project, I will include this main function for reference:
 
@@ -521,7 +521,7 @@ Our model can be further improved using the same codebase with a few adjustments
 
 \subsection{Conclusion}
 
-In this section, we tested our neural network model's ability to recognize spoken words under various noise conditions. The model demonstrated high accuracy, even when faced with significant noise levels. The consistent performance across different noise levels indicates that the model generalizes well to new data and is robust against common audio disturbances. The results suggest that our approach of using spectrograms and a custom CNN architecture is effective for speech recognition tasks. With the proposed further improvements, the model's performance can be enhanced even more, making it suitable for practical applications in speech recognition systems.
+In this section, we tested our neural network model's ability to recognize spoken words under various noise conditions. The model demonstrated high accuracy, even when faced with significant noise levels. The consistent performance across different noise levels indicates that the model generalizes well to new data and is robust against common audio disturbances. The results suggest that our approach of using spectrograms and a custom CNN architecture is effective for speech recognition tasks. With the proposed further improvements, the model's performance can be enhanced even more, making it suitable for practical applications in words recognition systems.
 
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
