@@ -45,8 +45,8 @@ def plot_confusion_matrix(labels, preds, idx_to_class, noise_name):
 def main_test():
     directories = {
         "no_noise": "spectrograms",
-        "noise_20db": "spectrograms_with_noise_20",
         "noise_40db": "spectrograms_with_noise_40",
+        "noise_20db": "spectrograms_with_noise_20",
     }
     for noise_name, root_dir in directories.items():
         print(f"Testing with {noise_name.replace('_', ' ')}...")

@@ -192,6 +192,7 @@ While the full code is available in the repository, I would like to highlight so
 Choosing a frame length of 1024 samples ensures that the FFT is efficient (as 1024 is a power of two) and provides sufficient frequency resolution for the speech signals. Removing silence from the audio files helps focus the model on the actual speech content and reduces unnecessary computation.
 
 \subsubsection{Noise Augmentation}
+\label{subsec:noise_augmentation}
 
 In addition to the spectrogram generation, the \texttt{preprocessing.py} file contains functions for generating noise-added audio samples and their corresponding spectrograms. These were used during the testing phase to assess the model’s robustness to noisy inputs, simulating real-world scenarios where background noise is present.
 
@@ -404,8 +405,6 @@ def get_data_loaders(
 \end{lstlisting}
 
 
-
-
 \newpage
 
 
@@ -416,9 +415,113 @@ def get_data_loaders(
 
 \section{Model Testing}
 
-Model testing is the process of evaluating a trained model's performance on new, unseen data. In this project, testing involves using a separate set of labeled spectrogram images that were not part of the training phase. By assessing the model’s predictions against the true labels in this test set, we can measure its accuracy and generalizability, ensuring it performs well on diverse data and accurately recognizes spoken words outside of the training set.
+Model testing is the process of evaluating a trained model's performance on new, unseen data. In this project, testing involves using a separate set of labeled spectrogram images that were not part of the training phase. By assessing the model’s predictions against the true labels in this test set, we can measure its accuracy and generalizability. This ensures that the model performs well on diverse data and accurately recognizes spoken words outside of the training set.
 
+\subsection{Generating Noise}
 
+As discussed in the Section~\ref{subsec:noise_augmentation}, we mentioned that the \texttt{preprocessing.py} script contains code to add different levels of noise to the audio files. The function \\ \texttt{generate\_and\_save\_noisy\_audio} iterates over all 1,042 audio files and generates noisy versions using the \texttt{add\_noise} function. By calling \texttt{generate\_and\_save\_noisy\_audio} followed by \texttt{generate\_and\_save\_all\_spectrograms}, as shown below, we obtain the spectrograms for both the original audio files and the ones with 20~dB and 40~dB noise levels. Figure~\ref{fig:spectrograms} illustrates the spectrograms generated in such a way.
+
+\begin{lstlisting}[language=Python, caption=Generating Noisy Audio and Spectrograms]
+# In preprocessing.py
+if __name__ == "__main__":
+    # Generate noisy audio files with SNR levels of 20 dB and 40 dB
+    generate_and_save_noisy_audio("audio", [20, 40])
+
+    # Generate spectrograms for the original and noisy audio files
+    generate_and_save_all_spectrograms(
+        "audio",
+        snr_db_list=[0, 20, 40]
+    )
+\end{lstlisting}
+
+\subsection{Testing the Model}
+
+The \texttt{test.py} script contains the code used to test our final model. The \texttt{main\_test} function, shown below, performs testing on datasets with no noise, 20~dB noise, and 40~dB noise.
+
+\begin{lstlisting}[language=Python, caption=Main Testing Function]
+def main_test():
+    directories = {
+        "no_noise": "spectrograms",
+        "noise_40db": "spectrograms_with_noise_40",
+        "noise_20db": "spectrograms_with_noise_20",
+    }
+    for noise_name, root_dir in directories.items():
+        print(f"Testing with {noise_name.replace('_', ' ')}...")
+        _, testloader, classes, idx_to_class = \
+            get_data_loaders(root_dir)
+        num_classes = len(classes)
+
+        # Load the model
+        net = load_model(
+            num_classes,
+            model_path="output_data/model.pth"
+        )
+
+        # Test the network and plot confusion matrix
+        test_model(net, testloader, idx_to_class, noise_name)
+\end{lstlisting}
+
+Since the data loaders use a predefined random seed, each test is performed on the exact same audio files, with or without added noise. To ensure that the data loaders return consistent datasets across different noise levels, I used the \texttt{check\_dataset.py} script, which verifies the consistency of the datasets.
+
+\subsection{Model Performance}
+
+The \texttt{test\_model} function performs the testing and plots the confusion matrices shown below. The following is the log output from the \texttt{main\_test} function:
+
+\begin{lstlisting}[language=, caption=Testing Log Output]
+Testing with no noise...
+Model loaded from output_data/model.pth
+Accuracy of the network on the test images (no_noise): 98.09%
+Confusion matrix saved to output_data/confusion_matrix_no_noise
+
+Testing with noise 40db...
+Model loaded from output_data/model.pth
+Accuracy of the network on the test images (noise_40db): 96.17%
+Confusion matrix saved to output_data/confusion_matrix_noise_40db
+
+Testing with noise 20db...
+Model loaded from output_data/model.pth
+Accuracy of the network on the test images (noise_20db): 92.82%
+Confusion matrix saved to output_data/confusion_matrix_noise_20db
+\end{lstlisting}
+
+As can be seen, the model performs well across all noise levels. As expected, higher levels of noise cause a degradation in performance, but not significantly. Notably, this model performs better than the initial test with ResNet-18, which is a more advanced model. This could be due to the size of the dataset, as more complex models typically require larger amounts of data.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{confusion_matrix_no_noise.png}
+    \caption{Confusion matrix for the test set without noise.}
+    \label{fig:confusion_matrix_no_noise}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{confusion_matrix_noise_40db.png}
+    \caption{Confusion matrix for the test set with 40~dB noise.}
+    \label{fig:confusion_matrix_noise_40db}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{confusion_matrix_noise_20db.png}
+    \caption{Confusion matrix for the test set with 20~dB noise.}
+    \label{fig:confusion_matrix_noise_20db}
+\end{figure}
+
+\subsection{Further Improvements}
+
+Our model can be further improved using the same codebase with a few adjustments. Here are some ideas:
+
+\begin{itemize}
+    \item \textbf{Expanding the Dataset:} Generate more audio files with additional speakers from Lovo.ai. In this project, we only used speakers with US, UK, and Australian accents. Including speakers with different accents can increase the model's robustness.
+
+    \item \textbf{Emotional Variations:} Generate audio files using different emotional tones (e.g., surprise, excitement, anger) as mentioned in the \textit{Dataset Creation} section. This can help the model generalize better to variations in speech caused by emotions.
+
+    \item \textbf{Noise Augmentation in Training:} Since we already have the code that generates noisy audio and corresponding spectrograms, we can include these noisy data in our training phase. Training the model with noisy data can improve its robustness to noise in real-world applications.
+\end{itemize}
+
+\subsection{Conclusion}
+
+In this section, we tested our neural network model's ability to recognize spoken words under various noise conditions. The model demonstrated high accuracy, even when faced with significant noise levels. The consistent performance across different noise levels indicates that the model generalizes well to new data and is robust against common audio disturbances. The results suggest that our approach of using spectrograms and a custom CNN architecture is effective for speech recognition tasks. With the proposed further improvements, the model's performance can be enhanced even more, making it suitable for practical applications in speech recognition systems.
 
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------

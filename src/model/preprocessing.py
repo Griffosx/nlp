@@ -66,20 +66,16 @@ def add_noise(audio_data: np.ndarray, snr_db: int = 20) -> np.ndarray:
     trimmed_audio = remove_silence(audio_data_float)
 
     # Calculate the power of the non-silent part of the original signal
-    if len(trimmed_audio) == 0:
-        # If trimmed audio is empty, set signal power to a small value to avoid division by zero
-        signal_power = 1e-10
-    else:
-        signal_power = np.mean(trimmed_audio**2)
+    signal_power = np.mean(trimmed_audio**2)
 
     # Compute noise power based on desired SNR
     noise_power = signal_power / (10 ** (snr_db / 10))
 
     # Generate white noise
-    noise = np.random.normal(0, np.sqrt(noise_power), len(audio_data_float))
+    noise = np.random.normal(0, np.sqrt(noise_power), len(trimmed_audio))
 
     # Add noise to the original signal
-    noisy_audio = audio_data_float + noise
+    noisy_audio = trimmed_audio + noise
 
     return noisy_audio
 
@@ -154,34 +150,6 @@ def save_spectrogram_image(spectrums_2d: np.ndarray, filename: str, axes: bool) 
     )
 
 
-def _generate_and_save_all_spectograms(audio_dir: str):
-    """
-    Generate spectrograms for all WAV files in the 'audio' directory
-    and save them in the 'spectograms' directory.
-    """
-    spectrogram_dir = "spectrograms"  # no noise
-    # frame_duration_ms = 24
-
-    # Create the spectrogram directory if it doesn't exist
-    os.makedirs(spectrogram_dir, exist_ok=True)
-
-    # Find all WAV files in the audio directory
-    wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
-
-    for audio_path in wav_files:
-        # Generate the spectrums
-        spectrogram = generate_spectrums(audio_path)
-
-        # Extract the base filename without extension
-        base_name = os.path.splitext(os.path.basename(audio_path))[0]
-
-        # Define the path for the spectrogram image
-        spectrogram_path = os.path.join(spectrogram_dir, f"{base_name}.png")
-
-        # Save the spectrogram image
-        save_spectrogram_image(spectrogram, spectrogram_path, axes=False)
-
-
 def generate_and_save_noisy_audio(audio_dir: str, snr_db_list: list[int]):
     """
     Generate noisy audio files for each WAV file in the audio directory
@@ -195,7 +163,7 @@ def generate_and_save_noisy_audio(audio_dir: str, snr_db_list: list[int]):
         # Find all WAV files in the audio directory
         wav_files = glob.glob(os.path.join(audio_dir, "*.wav"))
 
-        for audio_path in wav_files:
+        for audio_path in wav_files[:10]:
             # Read the audio data and sampling rate
             sampling_rate, audio_data = wavfile.read(audio_path)
             trimmed_audio_data = remove_silence(audio_data)
