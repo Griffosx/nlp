@@ -10,10 +10,10 @@ from pesq import pesq
 import os
 
 
-# constants
-n_fft = 1024
-hop_length = 256
-n_mels = 80
+# Constants
+N_FFT = 1024
+HOP_LENGHT = 256
+N_MELS = 80
 
 
 def compute_mel_spectrogram(
@@ -34,7 +34,7 @@ def compute_mel_spectrogram(
         mel_spectrogram (np.ndarray): Mel spectrogram.
     """
     # Compute STFT to get the complex spectrogram
-    stft = librosa.stft(audio_data, n_fft=n_fft, hop_length=hop_length)
+    stft = librosa.stft(audio_data, n_fft=N_FFT, hop_length=HOP_LENGHT)
     # Compute the magnitude spectrogram
     magnitude_spectrogram = np.abs(stft)
     # Convert the amplitude spectrogram to power spectrogram
@@ -43,9 +43,9 @@ def compute_mel_spectrogram(
     mel_spectrogram = librosa.feature.melspectrogram(
         S=power_spectrogram,
         sr=sample_rate,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        n_mels=n_mels,
+        n_fft=N_FFT,
+        hop_length=HOP_LENGHT,
+        n_mels=N_MELS,
     )
     return mel_spectrogram
 
@@ -64,7 +64,7 @@ def invert_mel_spectrogram(mel_spectrogram: np.ndarray, sample_rate: int) -> np.
         magnitude_spectrogram_approx (np.ndarray): Approximated magnitude spectrogram.
     """
     # Create Mel filter bank
-    mel_basis = librosa.filters.mel(sr=sample_rate, n_fft=n_fft, n_mels=n_mels)
+    mel_basis = librosa.filters.mel(sr=sample_rate, n_fft=N_FFT, n_mels=N_MELS)
     # Compute pseudo-inverse of the Mel filter bank
     inv_mel_basis = np.linalg.pinv(mel_basis)
     # Invert the Mel spectrogram to approximate the power spectrogram
@@ -92,7 +92,7 @@ def reconstruct_waveform(magnitude_spectrogram: np.ndarray) -> np.ndarray:
     n_iter = 60
     # Use Griffin-Lim algorithm to estimate the phase and reconstruct the signal
     reconstructed_audio = librosa.griffinlim(
-        magnitude_spectrogram, n_iter=n_iter, hop_length=hop_length, win_length=n_fft
+        magnitude_spectrogram, n_iter=n_iter, hop_length=HOP_LENGHT, win_length=N_FFT
     )
     return reconstructed_audio
 
@@ -126,7 +126,7 @@ def save_mel_spectrogram_plot(
         x_axis="time",
         y_axis="mel",
         sr=sample_rate,
-        hop_length=hop_length,
+        hop_length=HOP_LENGHT,
         cmap="viridis",
     )
     plt.colorbar(format="%+2.0f dB")
@@ -311,13 +311,6 @@ def tts_pipeline(original_audio_path: str) -> None:
         sample_rate,
     )
 
-    # Save the Mel spectrogram plot
-    save_mel_spectrogram_plot(
-        mel_spectrogram,
-        sample_rate,
-        filename,
-    )
-
     # Invert the Mel spectrogram back to a magnitude spectrogram
     magnitude_spectrogram_approx = invert_mel_spectrogram(mel_spectrogram, sample_rate)
 
@@ -326,6 +319,13 @@ def tts_pipeline(original_audio_path: str) -> None:
 
     # Save the reconstructed audio
     generated_audio_path = save_audio(reconstructed_audio, sample_rate, filename)
+
+    # Save the Mel spectrogram plot
+    save_mel_spectrogram_plot(
+        mel_spectrogram,
+        sample_rate,
+        filename,
+    )
 
     # Save waveforms
     save_waveforms(original_audio_data, reconstructed_audio, sample_rate, filename)
@@ -339,9 +339,9 @@ def tts_pipeline(original_audio_path: str) -> None:
 
 def main() -> None:
     """
-    Process all WAV files in the 'audio_tts' directory by applying the tts function to each file.
+    Process all WAV files in the 'tts/audio_tts' directory by applying the tts function to each file.
 
-    This function searches the 'audio_tts' folder for all files with a '.wav' extension and
+    This function searches the 'tts/audio_tts' folder for all files with a '.wav' extension and
     processes each file using the previously defined `tts` function.
 
     Raises:

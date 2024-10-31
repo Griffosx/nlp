@@ -1,0 +1,178 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{white}, % Set background color
+    basicstyle=\ttfamily\footnotesize, % Use a typewriter font
+    commentstyle=\color{gray},     % Comment color
+    keywordstyle=\color{blue},     % Keyword color
+    numberstyle=\tiny\color{gray}, % Line number color
+    stringstyle=\color{red},       % String color
+    breaklines=true,               % Automatically break long lines
+    frame=single,                  % Draw a frame around the code
+    numbers=left,                  % Line numbers on the left
+    numbersep=5pt,                 % Distance of line numbers from code
+    showspaces=false,              % Don't show spaces
+    showstringspaces=false,        % Don't show spaces in strings
+    showtabs=false,                % Don't show tabs
+    tabsize=4                      % Set default tab size
+}
+
+% Apply the custom style
+\lstset{style=mystyle}
+
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\usepackage[backend=biber, style=numeric, citestyle=numeric]{biblatex} % Load biblatex with the numeric style
+\addbibresource{references.bib} % Specify the database of bibliographic references
+\usepackage{hyperref} % For clickable links
+
+\title{TTS}
+\author{Davide Giuseppe Griffon}
+\date{}
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    This document serves as the report for the second task in the "Natural Language Processing" course completed by student Davide Giuseppe Griffon at Vilnius University as part of the Master's program in Data Science.
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+
+In the rapidly evolving field of Natural Language Processing (NLP), Text-to-Speech (TTS) synthesis serves as a pivotal technology that bridges the gap between written and spoken language. The primary objective of TTS systems is to generate clear and natural-sounding speech from text, enhancing accessibility for a broader audience, including individuals with visual impairments or speech disorders. Achieving effective TTS synthesis requires an interdisciplinary approach, combining insights from linguistics, digital signal processing, and machine learning to emulate the complexities of human speech production.
+
+At the core of any robust TTS system lies the \textit{vocoder}, short for ``voice encoder,'' a critical component that transforms intermediate acoustic representations into audible speech waveforms. Vocoders are fundamental in ensuring that synthesized speech is not only intelligible but also carries the natural prosodic features that make human speech expressive and engaging. Understanding the role and evolution of vocoders is essential for appreciating their impact on modern speech synthesis technologies.
+
+Traditional vocoders, such as STRAIGHT and WORLD, operate based on the source-filter model of speech production. In this model, the \textit{source} generates the fundamental frequency produced by the vocal cords, while the \textit{filter} simulates the effects of the vocal tract in shaping this sound into distinct phonemes and intonations. These parametric vocoders are renowned for their computational efficiency and precise control over speech parameters, making them suitable for real-time applications and resource-constrained environments. However, they often produce speech that sounds robotic and lacks the natural expressiveness inherent in human speech.
+
+The advent of neural vocoders, like WaveNet and HiFi-GAN, has revolutionized the field by leveraging deep learning to generate highly natural and human-like speech. These models learn complex mappings between acoustic features and waveforms from extensive datasets, capturing subtle nuances in prosody and emotion. While neural vocoders enhance the naturalness of generated speech, they demand substantial computational resources and large training datasets.
+
+This report explores the implementation of a vocoder-like method for speech synthesis, focusing on transforming input speech signals into Mel spectrograms and reconstructing waveforms for quality analysis. By examining this process, we aim to understand the underlying mechanisms that enable machines to produce speech with clarity and emotion, highlighting the continued importance of vocoders in the evolution of NLP and human-computer interaction.
+
+\newpage
+
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Methodology}
+
+In this section, we describe the step-by-step process of implementing a vocoder-like method for speech synthesis. The goal is to transform an input speech signal into a Mel spectrogram using the Short-Time Fourier Transform (STFT) and Mel scaling, and then reconstruct the waveform from this spectrogram. Finally, we save the reconstructed waveform as a \texttt{.wav} file to analyze its quality.
+
+\subsection{Transforming the Speech Signal into a Mel Spectrogram}
+
+The first step involves converting the input audio waveform, which is a time-domain signal, into a frequency-domain representation called a Mel spectrogram. This transformation is essential because it allows us to analyze the frequency content of the audio over time, which is crucial for speech processing.
+
+We start by applying the Short-Time Fourier Transform (STFT) to the audio signal. The STFT breaks the signal into short, overlapping time frames and computes the Fourier Transform for each frame. This results in a spectrogram that shows how the frequency content of the signal changes over time.
+
+Key parameters used in this process are:
+
+\begin{itemize}
+    \item \textbf{FFT window length} (\(N_{\text{FFT}}\)): 1024 samples
+    \item \textbf{Hop length} (\(H\)): 256 samples
+    \item \textbf{Number of Mel bands} (\(N_{\text{Mels}}\)): 80
+\end{itemize}
+
+The magnitude of the complex spectrogram obtained from the STFT represents the amplitude of the frequency components. To make this representation more aligned with human auditory perception, we apply Mel scaling. The Mel scale compresses the frequency axis so that equal distances on the scale correspond to equal perceived pitch differences.
+
+The Mel spectrogram is computed by mapping the frequencies of the magnitude spectrogram onto the Mel scale using a set of triangular filters known as the Mel filter bank. This results in a two-dimensional representation where one axis represents time, and the other represents frequency on the Mel scale.
+
+\subsection{Reconstructing the Waveform from the Mel Spectrogram}
+
+After obtaining the Mel spectrogram, the next challenge is to reconstruct the original audio waveform. However, the Mel spectrogram does not contain phase information, which is essential for accurate signal reconstruction. Moreover, the Mel scaling process is not inherently invertible due to its compressive nature.
+
+To address this, we approximate the inversion by computing the pseudo-inverse of the Mel filter bank. This step transforms the Mel spectrogram back into an estimated magnitude spectrogram in the original frequency domain. Since the magnitude spectrogram lacks phase information, we need a method to estimate it.
+
+\subsection{Estimating Phase with the Griffin-Lim Algorithm}
+
+The Griffin-Lim algorithm is an iterative technique used to estimate the missing phase information required to reconstruct the time-domain signal from a magnitude spectrogram. It works by alternating between the time and frequency domains to refine the phase estimate progressively.
+
+The general steps of the Griffin-Lim algorithm are:
+
+\begin{enumerate}
+    \item \textbf{Initialization}: Start with a random or zero phase estimate.
+    \item \textbf{Spectrogram Reconstruction}: Combine the estimated phase with the magnitude spectrogram to form a complex spectrogram.
+    \item \textbf{Inverse STFT}: Apply the inverse STFT to convert the complex spectrogram back to a time-domain signal.
+    \item \textbf{Forward STFT}: Compute the STFT of the reconstructed time-domain signal to get an updated spectrogram.
+    \item \textbf{Phase Update}: Update the phase estimate with the phase of the newly computed spectrogram.
+    \item \textbf{Iteration}: Repeat the above steps for a predetermined number of iterations (e.g., 60 iterations).
+\end{enumerate}
+
+Through these iterations, the algorithm minimizes the difference between the original magnitude spectrogram and the magnitude of the spectrogram obtained from the reconstructed signal. This results in a time-domain waveform that closely approximates the original audio signal.
+
+
+\newpage
+
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Analysis and Results}
+How to write this section: [Describe the methods used to evaluate the quality of the synthesized speech. Present the results of the vocoder evaluations.]
+
+Draft: [
+Once the waveform is reconstructed, we save it as a \texttt{.wav} file using the original sample rate. This allows us to perform further analyses to assess the quality of the reconstructed audio.
+
+Some of the analyses include:
+
+\begin{itemize}
+    \item \textbf{Visual Analysis}: Plotting the waveform and spectrogram to visually compare them with the original audio.
+    \item \textbf{Objective Evaluation}: Calculating metrics such as the Perceptual Evaluation of Speech Quality (PESQ) score to quantitatively assess the audio quality.
+    \item \textbf{Subjective Listening Tests}: Listening to the reconstructed audio to evaluate its naturalness and intelligibility from a human perspective.
+\end{itemize}
+
+By saving the reconstructed waveform and conducting these analyses, we can evaluate the effectiveness of our vocoder-like method in preserving the essential characteristics of the original speech signal.
+]
+
+Results: [
+
+]
+
+
+\section{Conclusion}
+How to write this section: discussion and conclusion regarding the finding
+
+Questions for reflection that will help writing this report:
+- How similar does the reconstructed waveform sound to the original?
+- Discuss any possible artifacts or differences you noticed. Why might the reconstruction not be perfect?
+- Research modern neural vocoders such as HiFi-GAN or WaveNet. How are these vocoders different from the method you implemented? Why do they produce better-quality results?
+
+
+\newpage
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+
+\end{document}
