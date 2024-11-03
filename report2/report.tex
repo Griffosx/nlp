@@ -65,24 +65,23 @@ Since the first attempts in this area, many modern models aiming to synthesize h
 
 \subsection{Traditional Parametric Vocoders}
 
-Traditional parametric vocoders, such as STRAIGHT and WORLD, use specific algorithms that operate based on acoustic analysis. Both vocoders extract key acoustic features from speech signals, including:
+Traditional parametric vocoders, such as STRAIGHT and WORLD, process speech signals using specific algorithms based on acoustic analysis. They operate by decomposing the speech into key acoustic features. In particular they extract:
 
 \begin{itemize}
-\item \textbf{Spectral Envelope}: The smooth curve representing the resonances of the vocal tract (the formants) over time, which describes the timbre of the speech.
-\item \textbf{F0 (Fundamental Frequency)}: Represents the pitch or perceived frequency of the voice, determining the intonation and melody of speech.
-\item \textbf{Aperiodicity (or noise components)}: Captures the noise and non-periodic parts of the signal, important for unvoiced sounds like fricatives (/s/, /f/).
+    \item \textbf{Spectral Envelope}: This is a smooth curve representing the resonant frequencies (formants) of the vocal tract over time. The spectral envelope characterizes the timbre or color of the speech, reflecting how the shape and movements of the vocal tract affect the sound produced.
+    
+    \item \textbf{F0 (Fundamental Frequency)}: The fundamental frequency corresponds to the pitch or perceived frequency of the voice. It determines the intonation and melody of speech, playing a vital role in conveying meaning, emotion, and emphasis through variations in pitch.
+    
+    \item \textbf{Aperiodicity (or Noise Components)}: These components capture the noise and non-periodic parts of the speech signal. They are essential for accurately reproducing unvoiced sounds like fricatives (/s/, /f/), which are characterized by turbulent airflow rather than vocal cord vibrations.
 \end{itemize}
 
-After extracting these features, both vocoders synthesize a new waveform by resynthesizing the signal based on the analyzed parameters. While they aim to produce natural-sounding speech from this decomposition, they employ different algorithms and methods for both analysis and synthesis.
+After extracting these features, the vocoders synthesize a new waveform by reconstructing the signal based on the analyzed parameters. Although both STRAIGHT and WORLD aim to produce natural-sounding speech from this decomposition, they utilize different algorithms and methods for the analysis and synthesis stages.
 
-These parametric vocoders are renowned for their computational efficiency and precise control over speech parameters, making them suitable for real-time applications and resource-constrained environments. However, they often produce speech that sounds robotic and lacks the natural expressiveness inherent in human speech.
+These parametric vocoders are valued for their computational efficiency and precise control over speech parameters, making them suitable for real-time applications and environments with limited computational resources. However, a common drawback is that the speech they produce often sounds robotic and lacks the natural expressiveness and subtle nuances inherent in human speech.
 
 \subsection{Neural-Based Vocoders}
 
 The advent of neural vocoders, such as WaveNet and HiFi-GAN, has revolutionized the field by leveraging deep learning techniques to generate highly natural and human-like speech. These models learn complex mappings between acoustic features and waveforms from extensive datasets, capturing subtle nuances in prosody and emotion. While neural vocoders significantly enhance the naturalness of synthesized speech, they demand substantial computational resources and large training datasets.
-
-
-\newpage
 
 
 
@@ -94,49 +93,33 @@ The advent of neural vocoders, such as WaveNet and HiFi-GAN, has revolutionized 
 
 \section{Methodology}
 
-In this section, we describe the step-by-step process of implementing a vocoder-like method for speech synthesis. The goal is to transform an input speech signal into a Mel spectrogram using the Short-Time Fourier Transform (STFT) and Mel scaling, and then reconstruct the waveform from this spectrogram. Finally, we save the reconstructed waveform as a \texttt{.wav} file to analyze its quality.
+In this section, we describe the step-by-step process I followed to implement a vocoder-like method for speech synthesis. The goal is to transform an input speech signal into a Mel spectrogram using the Short-Time Fourier Transform (STFT) and Mel scaling, and then reconstruct the waveform from this spectrogram. The final steps involve saving the reconstructed waveform as a \texttt{.wav} file and analyzing its quality using both objective and subjective methods.
+
+Implementation note: Unlike the first assignment, where I chose not to rely on the \texttt{librosa} library and used only \texttt{numpy}, in this assignment I decided to use only \texttt{librosa} because it already contains many useful functions.
 
 \subsection{Transforming the Speech Signal into a Mel Spectrogram}
 
 The first step involves converting the input audio waveform, which is a time-domain signal, into a frequency-domain representation called a Mel spectrogram. This transformation is essential because it allows us to analyze the frequency content of the audio over time, which is crucial for speech processing.
 
-We start by applying the Short-Time Fourier Transform (STFT) to the audio signal. The STFT breaks the signal into short, overlapping time frames and computes the Fourier Transform for each frame. This results in a spectrogram that shows how the frequency content of the signal changes over time.
+We start by applying the Short-Time Fourier Transform (STFT) to the audio signal. The STFT divides the signal into short, overlapping time frames, computes the Fourier Transform for each frame, and applies a windowing function to smooth each frame. For this step, I used the \texttt{librosa} function \texttt{librosa.stft}, which performs this task in a single step. While I could have broken this process down into several steps—framing, windowing, and Fourier transformation—the \texttt{librosa} function is so convenient that I chose this simplified approach.
 
-Key parameters used in this process are:
+The magnitude of the complex spectrogram obtained from the STFT is then converted to power, and the resulting power signal is transformed into a Mel spectrogram using the function \texttt{librosa.feature.melspectrogram}, which computes a Mel-scaled spectrogram.
 
-\begin{itemize}
-    \item \textbf{FFT window length} (\(N_{\text{FFT}}\)): 1024 samples
-    \item \textbf{Hop length} (\(H\)): 256 samples
-    \item \textbf{Number of Mel bands} (\(N_{\text{Mels}}\)): 80
-\end{itemize}
+The Mel spectrogram is computed by mapping the frequencies of the magnitude spectrogram onto the Mel scale using a set of triangular filters, known as the Mel filter bank. This results in a two-dimensional representation where one axis represents time, and the other represents frequency on the Mel scale.
 
-The magnitude of the complex spectrogram obtained from the STFT represents the amplitude of the frequency components. To make this representation more aligned with human auditory perception, we apply Mel scaling. The Mel scale compresses the frequency axis so that equal distances on the scale correspond to equal perceived pitch differences.
+Humans are better at detecting differences in lower frequencies than in higher frequencies. For example, we can easily tell the difference between 500 Hz and 1000 Hz, but would hardly detect a difference between 10,000 Hz and 10,500 Hz, even though the difference between the two pairs is the same. The Mel scale is designed to align more closely with how humans perceive pitch, giving greater resolution to lower frequencies and compressing higher frequencies.
 
-The Mel spectrogram is computed by mapping the frequencies of the magnitude spectrogram onto the Mel scale using a set of triangular filters known as the Mel filter bank. This results in a two-dimensional representation where one axis represents time, and the other represents frequency on the Mel scale.
 
 \subsection{Reconstructing the Waveform from the Mel Spectrogram}
 
-After obtaining the Mel spectrogram, the next challenge is to reconstruct the original audio waveform. However, the Mel spectrogram does not contain phase information, which is essential for accurate signal reconstruction. Moreover, the Mel scaling process is not inherently invertible due to its compressive nature.
+Reconstructing the original audio waveform from the Mel spectrogram is a complex task. For instance, the Mel spectrogram lacks phase information, which is essential for accurate signal reconstruction. Additionally, the Mel scaling compresses the frequency representation, adding further complexity to this process. To manage these challenges, I relied on existing \textit{librosa} functions, specifically:
 
-To address this, we approximate the inversion by computing the pseudo-inverse of the Mel filter bank. This step transforms the Mel spectrogram back into an estimated magnitude spectrogram in the original frequency domain. Since the magnitude spectrogram lacks phase information, we need a method to estimate it.
+\begin{itemize}
+    \item \textit{librosa.feature.inverse.mel\_to\_stft}, which approximates the STFT magnitude from a Mel power spectrogram.
+    \item \textit{librosa.griffinlim}, which performs an approximate magnitude spectrogram inversion using the "fast" Griffin-Lim algorithm.
+\end{itemize}
 
-\subsection{Estimating Phase with the Griffin-Lim Algorithm}
-
-The Griffin-Lim algorithm is an iterative technique used to estimate the missing phase information required to reconstruct the time-domain signal from a magnitude spectrogram. It works by alternating between the time and frequency domains to refine the phase estimate progressively.
-
-The general steps of the Griffin-Lim algorithm are:
-
-\begin{enumerate}
-    \item \textbf{Initialization}: Start with a random or zero phase estimate.
-    \item \textbf{Spectrogram Reconstruction}: Combine the estimated phase with the magnitude spectrogram to form a complex spectrogram.
-    \item \textbf{Inverse STFT}: Apply the inverse STFT to convert the complex spectrogram back to a time-domain signal.
-    \item \textbf{Forward STFT}: Compute the STFT of the reconstructed time-domain signal to get an updated spectrogram.
-    \item \textbf{Phase Update}: Update the phase estimate with the phase of the newly computed spectrogram.
-    \item \textbf{Iteration}: Repeat the above steps for a predetermined number of iterations (e.g., 60 iterations).
-\end{enumerate}
-
-Through these iterations, the algorithm minimizes the difference between the original magnitude spectrogram and the magnitude of the spectrogram obtained from the reconstructed signal. This results in a time-domain waveform that closely approximates the original audio signal.
-
+After these two steps, the reconstructed audio waveform is obtained and can be easily saved as a new \texttt{.wav} file. For this step, I used the \texttt{write} function from the \textit{python-soundfile} audio library.
 
 \newpage
 
