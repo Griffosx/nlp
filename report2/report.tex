@@ -7,6 +7,7 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{booktabs}
 
 \lstdefinestyle{mystyle}{
     backgroundcolor=\color{white}, % Set background color
@@ -58,15 +59,28 @@
 
 \section{Introduction}
 
-In the rapidly evolving field of Natural Language Processing (NLP), Text-to-Speech (TTS) synthesis serves as a pivotal technology that bridges the gap between written and spoken language. The primary objective of TTS systems is to generate clear and natural-sounding speech from text, enhancing accessibility for a broader audience, including individuals with visual impairments or speech disorders. Achieving effective TTS synthesis requires an interdisciplinary approach, combining insights from linguistics, digital signal processing, and machine learning to emulate the complexities of human speech production.
+In the rapidly evolving field of Natural Language Processing (NLP), Text-to-Speech (TTS) synthesis serves as a fundamental technology that bridges the gap between written and spoken language. The primary objective of TTS systems is to generate clear and natural-sounding speech from text, enhancing accessibility for a broader audience, including individuals with visual impairments or speech disorders. Achieving effective TTS synthesis requires an interdisciplinary approach, combining insights from linguistics, digital signal processing, and machine learning to emulate the complexities of human speech production.
 
-At the core of any robust TTS system lies the \textit{vocoder}, short for ``voice encoder,'' a critical component that transforms intermediate acoustic representations into audible speech waveforms. Vocoders are fundamental in ensuring that synthesized speech is not only intelligible but also carries the natural prosodic features that make human speech expressive and engaging. Understanding the role and evolution of vocoders is essential for appreciating their impact on modern speech synthesis technologies.
+Since the first attempts in this area, many modern models aiming to synthesize human speech have relied on vocoders. The \textit{vocoder}, short for ``voice encoder,'' is a critical component that transforms intermediate linguistic or acoustic representations into audible speech waveforms. This technology ensures that synthesized speech is not only intelligible but also carries the natural prosodic features that make human speech expressive and engaging. Understanding the role and evolution of vocoders is essential for appreciating their impact on modern speech synthesis technologies.
 
-Traditional vocoders, such as STRAIGHT and WORLD, operate based on the source-filter model of speech production. In this model, the \textit{source} generates the fundamental frequency produced by the vocal cords, while the \textit{filter} simulates the effects of the vocal tract in shaping this sound into distinct phonemes and intonations. These parametric vocoders are renowned for their computational efficiency and precise control over speech parameters, making them suitable for real-time applications and resource-constrained environments. However, they often produce speech that sounds robotic and lacks the natural expressiveness inherent in human speech.
+\subsection{Traditional Parametric Vocoders}
 
-The advent of neural vocoders, like WaveNet and HiFi-GAN, has revolutionized the field by leveraging deep learning to generate highly natural and human-like speech. These models learn complex mappings between acoustic features and waveforms from extensive datasets, capturing subtle nuances in prosody and emotion. While neural vocoders enhance the naturalness of generated speech, they demand substantial computational resources and large training datasets.
+Traditional parametric vocoders, such as STRAIGHT and WORLD, use specific algorithms that operate based on acoustic analysis. Both vocoders extract key acoustic features from speech signals, including:
 
-This report explores the implementation of a vocoder-like method for speech synthesis, focusing on transforming input speech signals into Mel spectrograms and reconstructing waveforms for quality analysis. By examining this process, we aim to understand the underlying mechanisms that enable machines to produce speech with clarity and emotion, highlighting the continued importance of vocoders in the evolution of NLP and human-computer interaction.
+\begin{itemize}
+\item \textbf{Spectral Envelope}: The smooth curve representing the resonances of the vocal tract (the formants) over time, which describes the timbre of the speech.
+\item \textbf{F0 (Fundamental Frequency)}: Represents the pitch or perceived frequency of the voice, determining the intonation and melody of speech.
+\item \textbf{Aperiodicity (or noise components)}: Captures the noise and non-periodic parts of the signal, important for unvoiced sounds like fricatives (/s/, /f/).
+\end{itemize}
+
+After extracting these features, both vocoders synthesize a new waveform by resynthesizing the signal based on the analyzed parameters. While they aim to produce natural-sounding speech from this decomposition, they employ different algorithms and methods for both analysis and synthesis.
+
+These parametric vocoders are renowned for their computational efficiency and precise control over speech parameters, making them suitable for real-time applications and resource-constrained environments. However, they often produce speech that sounds robotic and lacks the natural expressiveness inherent in human speech.
+
+\subsection{Neural-Based Vocoders}
+
+The advent of neural vocoders, such as WaveNet and HiFi-GAN, has revolutionized the field by leveraging deep learning techniques to generate highly natural and human-like speech. These models learn complex mappings between acoustic features and waveforms from extensive datasets, capturing subtle nuances in prosody and emotion. While neural vocoders significantly enhance the naturalness of synthesized speech, they demand substantial computational resources and large training datasets.
+
 
 \newpage
 
