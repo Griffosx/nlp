@@ -231,13 +231,6 @@ def tts_pipeline(original_audio_path: str) -> None:
     """
     filename = original_audio_path.split("/")[-1].split(".")[0]
 
-    # Ensure that all output directories exist
-    os.makedirs("tts/audio_tts_generated", exist_ok=True)
-    os.makedirs("tts/mel_spectrograms", exist_ok=True)
-    os.makedirs("tts/waveforms", exist_ok=True)
-    os.makedirs("tts/waveform_comparisons", exist_ok=True)
-    os.makedirs("tts/f0_contours", exist_ok=True)
-
     # Load the original audio
     original_audio_data, sample_rate = librosa.load(original_audio_path, sr=None)
 
@@ -287,6 +280,13 @@ def main() -> None:
         raise FileNotFoundError(
             f"The directory '{audio_directory}' does not exist or is not a directory."
         )
+
+    # Ensure that all output directories exist
+    os.makedirs("tts/audio_tts_generated", exist_ok=True)
+    os.makedirs("tts/mel_spectrograms", exist_ok=True)
+    os.makedirs("tts/waveforms", exist_ok=True)
+    os.makedirs("tts/waveform_comparisons", exist_ok=True)
+    os.makedirs("tts/f0_contours", exist_ok=True)
 
     wav_files = list(audio_directory.glob("*.wav"))
 

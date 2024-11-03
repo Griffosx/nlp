@@ -61,9 +61,10 @@
 
 In the rapidly evolving field of Natural Language Processing (NLP), Text-to-Speech (TTS) synthesis serves as a fundamental technology that bridges the gap between written and spoken language. The primary objective of TTS systems is to generate clear and natural-sounding speech from text, enhancing accessibility for a broader audience, including individuals with visual impairments or speech disorders. Achieving effective TTS synthesis requires an interdisciplinary approach, combining insights from linguistics, digital signal processing, and machine learning to emulate the complexities of human speech production.
 
+\subsection{Vocoders}
 Since the first attempts in this area, many modern models aiming to synthesize human speech have relied on vocoders. The \textit{vocoder}, short for ``voice encoder,'' is a critical component that transforms intermediate linguistic or acoustic representations into audible speech waveforms. This technology ensures that synthesized speech is not only intelligible but also carries the natural prosodic features that make human speech expressive and engaging. Understanding the role and evolution of vocoders is essential for appreciating their impact on modern speech synthesis technologies.
 
-\subsection{Traditional Parametric Vocoders}
+\subsubsection{Traditional Parametric Vocoders}
 
 Traditional parametric vocoders, such as STRAIGHT and WORLD, process speech signals using specific algorithms based on acoustic analysis. They operate by decomposing the speech into key acoustic features. In particular they extract:
 
@@ -79,7 +80,7 @@ After extracting these features, the vocoders synthesize a new waveform by recon
 
 These parametric vocoders are valued for their computational efficiency and precise control over speech parameters, making them suitable for real-time applications and environments with limited computational resources. However, a common drawback is that the speech they produce often sounds robotic and lacks the natural expressiveness and subtle nuances inherent in human speech.
 
-\subsection{Neural-Based Vocoders}
+\subsubsection{Neural-Based Vocoders}
 
 The advent of neural vocoders, such as WaveNet and HiFi-GAN, has revolutionized the field by leveraging deep learning techniques to generate highly natural and human-like speech. These models learn complex mappings between acoustic features and waveforms from extensive datasets, capturing subtle nuances in prosody and emotion. While neural vocoders significantly enhance the naturalness of synthesized speech, they demand substantial computational resources and large training datasets.
 
@@ -101,12 +102,13 @@ Implementation note: Unlike the first assignment, where I chose not to rely on t
 
 The first step involves converting the input audio waveform, which is a time-domain signal, into a frequency-domain representation called a Mel spectrogram. This transformation is essential because it allows us to analyze the frequency content of the audio over time, which is crucial for speech processing.
 
-We start by applying the Short-Time Fourier Transform (STFT) to the audio signal. The STFT divides the signal into short, overlapping time frames, computes the Fourier Transform for each frame, and applies a windowing function to smooth each frame. For this step, I used the \texttt{librosa} function \texttt{librosa.stft}, which performs this task in a single step. While I could have broken this process down into several steps—framing, windowing, and Fourier transformation—the \texttt{librosa} function is so convenient that I chose this simplified approach.
+I started by applying the Short-Time Fourier Transform (STFT) to the audio signal. The STFT divides the signal into short, overlapping time frames, computes the Fourier Transform for each frame, and applies a windowing function to smooth each frame. For this step, I used the \texttt{librosa} function \texttt{librosa.stft}, which performs this task in a single step. While I could have broken this process down into several steps—framing, windowing, and Fourier transformation—this \texttt{librosa} function is so convenient that I chose this simplified approach.
 
 The magnitude of the complex spectrogram obtained from the STFT is then converted to power, and the resulting power signal is transformed into a Mel spectrogram using the function \texttt{librosa.feature.melspectrogram}, which computes a Mel-scaled spectrogram.
 
 The Mel spectrogram is computed by mapping the frequencies of the magnitude spectrogram onto the Mel scale using a set of triangular filters, known as the Mel filter bank. This results in a two-dimensional representation where one axis represents time, and the other represents frequency on the Mel scale.
 
+\subsubsection{Why Mel Spectrogram?}
 Humans are better at detecting differences in lower frequencies than in higher frequencies. For example, we can easily tell the difference between 500 Hz and 1000 Hz, but would hardly detect a difference between 10,000 Hz and 10,500 Hz, even though the difference between the two pairs is the same. The Mel scale is designed to align more closely with how humans perceive pitch, giving greater resolution to lower frequencies and compressing higher frequencies.
 
 
@@ -121,8 +123,6 @@ Reconstructing the original audio waveform from the Mel spectrogram is a complex
 
 After these two steps, the reconstructed audio waveform is obtained and can be easily saved as a new \texttt{.wav} file. For this step, I used the \texttt{write} function from the \textit{python-soundfile} audio library.
 
-\newpage
-
 
 
 % -------------------------------------------------------------------------------------------------
@@ -132,34 +132,90 @@ After these two steps, the reconstructed audio waveform is obtained and can be e
 
 
 \section{Analysis and Results}
-How to write this section: [Describe the methods used to evaluate the quality of the synthesized speech. Present the results of the vocoder evaluations.]
-
-Draft: [
-Once the waveform is reconstructed, we save it as a \texttt{.wav} file using the original sample rate. This allows us to perform further analyses to assess the quality of the reconstructed audio.
-
-Some of the analyses include:
+For this assessment, I evaluated three sources of data to examine how differences in audio files affect performance. The sources I used are:
 
 \begin{itemize}
-    \item \textbf{Visual Analysis}: Plotting the waveform and spectrogram to visually compare them with the original audio.
-    \item \textbf{Objective Evaluation}: Calculating metrics such as the Perceptual Evaluation of Speech Quality (PESQ) score to quantitatively assess the audio quality.
-    \item \textbf{Subjective Listening Tests}: Listening to the reconstructed audio to evaluate its naturalness and intelligibility from a human perspective.
+    \item \textbf{Generated audio files}: This dataset is the same one I used in Assignment 1, consisting of 10 words generated with Lovo.ai.
+    \item \textbf{AudioMNIST}: A dataset containing audio samples of spoken digits (0-9) from 60 different speakers.
+    \item \textbf{Recorded}: Audio files I recorded using my own voice.
 \end{itemize}
 
-By saving the reconstructed waveform and conducting these analyses, we can evaluate the effectiveness of our vocoder-like method in preserving the essential characteristics of the original speech signal.
-]
+Using these diverse datasets allowed me to evaluate my project in a more comprehensive way.
 
-Results: [
+Once the audio is reconstructed from the Mel spectrogram, it’s time to evaluate the quality of the reconstruction. In the codebase, provided in the appendix along with the Github repository, I wrote a few functions to plot the Mel spectrogram, the waveforms (both original and generated), and the F0 contour. The analysis of these plots provides an idea of how well this project was implemented. Following this "subjective" analysis of intermediate steps, I conducted both objective and subjective evaluations of the reconstructed audio files.
 
-]
+\subsection{Analysis of Intermediate Steps}
+
+Analyzing intermediate steps is essential to ensure the process is on the right track before producing the final result, the reconstructed audio file. A clear way to evaluate intermediate results is by visualizing them in plotted form. I wrote three utility functions to plot these results: \texttt{save\_mel\_spectrogram\_plot}, \texttt{save\_waveforms}, and \texttt{save\_f0\_contour}.
+
+\subsubsection{Mel Spectrogram}
+Plotting the Mel spectrogram is straightforward; in this case, I used the function \\ \texttt{librosa.display.specshow}. In Figure~\ref{fig:melspec_zero}, the Mel spectrogram of the word "Zero" from the AudioMNIST dataset is shown.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{melspec_zero.png}
+    \caption{Mel spectrogram of the word "Zero" from AudioMNIST}
+    \label{fig:melspec_zero}
+\end{figure}
+
+\subsubsection{Waveform}
+To display the waveform, I used the simple \texttt{librosa.display.waveshow} function from \texttt{librosa}. In Figure~\ref{fig:wav_accents_recorded}, the waveform of the word "Accents," recorded by me, is displayed for both the original and reconstructed versions. As shown, the two plots are quite similar.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{waveform_accents_recorded.png}
+    \caption{Waveform of the word "Accents" recorded by me: original and reconstructed}
+    \label{fig:wav_accents_recorded}
+\end{figure}
+
+\subsubsection{F0 Contour}
+The fundamental frequency (F0) of a speech signal represents pitch—the perceptual characteristic that determines how high or low a sound is perceived. Pitch is essential for conveying meaning and emotion in speech. In an acoustic framework, intonation refers to the variation in pitch, which enhances the expressive quality of spoken language.
+
+To calculate F0, I used \texttt{librosa.pyin}, which estimates it using a specialized algorithm. In Figure~\ref{fig:f0_phonetics}, the original and reconstructed F0 contours of the word "Phonetics" from the generated audio dataset are displayed. As illustrated, the F0 of the reconstructed version closely resembles the original.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{f0_phonetics.png}
+    \caption{F0 contours of the word "Phonetics" from the generated audio dataset: original and reconstructed}
+    \label{fig:f0_phonetics}
+\end{figure}
 
 
-\section{Conclusion}
-How to write this section: discussion and conclusion regarding the finding
+\subsection{Analysis of the Reconstructed Audio}
 
-Questions for reflection that will help writing this report:
-- How similar does the reconstructed waveform sound to the original?
-- Discuss any possible artifacts or differences you noticed. Why might the reconstruction not be perfect?
-- Research modern neural vocoders such as HiFi-GAN or WaveNet. How are these vocoders different from the method you implemented? Why do they produce better-quality results?
+Finally, I evaluated the reconstructed audio files using both objective and subjective methods.
+
+\subsubsection{Objective Analysis}
+
+The Perceptual Evaluation of Speech Quality (PESQ) is an objective measure designed to assess the quality of speech signals by comparing a degraded version—such as one that has been synthesized, enhanced, or compressed—to a clean reference signal. This approach replicates the human auditory system to estimate how people would perceive the quality of the impaired signal. The PESQ algorithm is sophisticated, involving multiple signal processing stages, including time alignment, frequency analysis, and cognitive modeling.
+
+To perform PESQ, I used the Python library \texttt{pesq}. Below are some example logs:
+
+\begin{verbatim}
+Processing file: tts/audio_tts/mnist_0_27_8.wav
+PESQ Score: 2.812911033630371
+
+Processing file: tts/audio_tts/recorded_accents.wav
+PESQ Score: 3.6831583976745605
+
+Processing file: tts/audio_tts/generated_detect_tim_hardway_12.wav
+PESQ Score: 2.4536759853363037
+\end{verbatim}
+
+In all PESQ evaluations I performed, the scores ranged between 2 and 4. This indicates that the final reconstructed audio has decent quality, but it is not perfect.
+
+\subsubsection{Subjective Analysis}
+
+Generally, the quality of the reconstructed audio is fairly decent, as established by the PESQ scores. I generally agree with the PESQ evaluations. In almost all examples, I can recognize that the generated audio was reconstructed artificially, especially the audio from the generated dataset. In about one third of the generated audio samples, there is noticeable robotic distortion, but in all cases, the word is recognizable.
+
+
+\section{Conclusions}
+
+This project implemented a basic vocoder-like method for speech synthesis by converting speech signals into Mel spectrograms and reconstructing the waveforms. While the reconstructed audio retained intelligibility, it exhibited noticeable artifacts and sounded less natural than the original recordings. PESQ scores ranging from 2 to 4 reflected this moderate similarity. The imperfections are probably derived from the loss of phase information during the conversion to Mel spectrograms.
+
+Modern neural vocoders like WaveNet and HiFi-GAN overcome these limitations by using deep learning to model both magnitude and phase directly from data. They capture complex patterns in speech signals, producing highly natural and realistic audio. Unlike traditional methods, these neural vocoders generate the waveform end-to-end, resulting in superior quality.
+
+In summary, while method used in this project provides a foundational understanding of speech synthesis, it highlights the challenges of traditional vocoder techniques.
 
 
 \newpage
