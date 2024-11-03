@@ -48,7 +48,7 @@ def invert_mel_spectrogram(mel_spectrogram: np.ndarray, sample_rate: int) -> np.
         mel_spectrogram,
         sr=sample_rate,
         n_fft=N_FFT,
-        power=2.0,  # power must be 2 because we used power spectrogram (magnitude squared)
+        power=2.0,  # power must be 2 because we used power spectrogram
     )
 
 
