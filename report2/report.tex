@@ -227,7 +227,7 @@ In summary, while method used in this project provides a foundational understand
 
 \section{Appendix: Codebase}
 
-The codebase is fully avaible on Github, but covenience it's reported in this appendix for a quick review.
+The codebase is fully avaible on \href{https://github.com/Griffosx/nlp/blob/main/src/tts/tts_librosa.py}{GitHub}, but for covenience it's reported in this appendix for a quick review.
 
 \begin{lstlisting}[language=Python, basicstyle=\fontsize{8}{9}\ttfamily]
 from pathlib import Path
@@ -504,7 +504,7 @@ def main() -> None:
     Process all WAV files in the 'tts/audio_tts' directory by applying the tts function to each file.
 
     This function searches the 'tts/audio_tts' folder for all files with a '.wav' extension and
-    processes each file using the previously defined `tts` function.
+    processes each file using the previously defined `tts_pipeline` function.
     """
     audio_directory = Path("tts/audio_tts")
 
