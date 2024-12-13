@@ -9,6 +9,8 @@ spacy.cli.download(SPACY_MODEL)
 # Load spaCy model only once
 nlp = spacy.load(SPACY_MODEL)
 
-DATASETS_PATH = "assets/task_3/datasets"
-TRAIN_DATA_PATH = f"{DATASETS_PATH}/train.csv"
-TEST_DATA_PATH = f"{DATASETS_PATH}/test.csv"
+DATASETS_BASE_PATH = "assets/task_3/datasets"
+TRAIN_RAW_DATA_PATH = f"{DATASETS_BASE_PATH}/raw/train.csv"
+TEST_RAW_DATA_PATH = f"{DATASETS_BASE_PATH}/raw/test.csv"
+TRAIN_LEMMA_DATA_PATH = f"{DATASETS_BASE_PATH}/lemma/train.csv"
+TEST_LEMMA_DATA_PATH = f"{DATASETS_BASE_PATH}/lemma/test.csv"

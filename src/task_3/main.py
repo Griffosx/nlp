@@ -21,5 +21,5 @@ def check_load_and_clean():
 
 
 if __name__ == "__main__":
-    # generate_wordcloud(lemmatisation=True)
-    save_raw_datasets_to_local(num_samples=100)
+    generate_wordcloud(lemmatisation=True)
+    # save_raw_datasets_to_local(num_samples=100)

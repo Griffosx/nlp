@@ -1,10 +1,15 @@
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import spacy
 from datasets import load_dataset
-from task_3.constants import nlp, POSITIVE_LABEL, TRAIN_DATA_PATH, TEST_DATA_PATH
-from task_3.loader import load_local_raw_datasets
+from task_3.constants import (
+    nlp,
+    POSITIVE_LABEL,
+    TRAIN_RAW_DATA_PATH,
+    TEST_RAW_DATA_PATH,
+    TRAIN_LEMMA_DATA_PATH,
+    TEST_LEMMA_DATA_PATH,
+)
 
 
 def load_imdb_dataset(
@@ -82,13 +87,31 @@ def load_and_clean_imdb_dataset(
 
 def save_raw_datasets_to_local(num_samples=None, print_stats=False):
     train_data, test_data = load_and_clean_imdb_dataset(num_samples, print_stats)
-    train_data.to_csv(TRAIN_DATA_PATH, index=False)
-    test_data.to_csv(TEST_DATA_PATH, index=False)
+    train_data.to_csv(TRAIN_RAW_DATA_PATH, index=False)
+    test_data.to_csv(TEST_RAW_DATA_PATH, index=False)
 
 
 def load_local_raw_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
-    train_data = pd.read_csv(TRAIN_DATA_PATH)
-    test_data = pd.read_csv(TEST_DATA_PATH)
+    train_data = pd.read_csv(TRAIN_RAW_DATA_PATH)
+    test_data = pd.read_csv(TEST_RAW_DATA_PATH)
+    return train_data, test_data
+
+
+def save_lemma_datasets_to_local():
+    train_data, test_data = load_local_raw_datasets()
+    train_data["text"] = train_data["text"].apply(
+        lambda x: " ".join([token.lemma_ for token in nlp(x)])
+    )
+    test_data["text"] = test_data["text"].apply(
+        lambda x: " ".join([token.lemma_ for token in nlp(x)])
+    )
+    train_data.to_csv(TRAIN_LEMMA_DATA_PATH, index=False)
+    test_data.to_csv(TEST_LEMMA_DATA_PATH, index=False)
+
+
+def load_local_lemma_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
+    train_data = pd.read_csv(TRAIN_LEMMA_DATA_PATH)
+    test_data = pd.read_csv(TEST_LEMMA_DATA_PATH)
     return train_data, test_data
 
 
@@ -96,7 +119,10 @@ def generate_wordcloud(lemmatisation=False):
     """
     For each label in the dataset, generate and plot a wordcloud.
     """
-    dataset, _ = load_local_raw_datasets()
+    if lemmatisation:
+        dataset, _ = load_local_lemma_datasets()
+    else:
+        dataset, _ = load_local_raw_datasets()
 
     # Get unique labels from the dataset
     unique_labels = dataset["label"].unique()
