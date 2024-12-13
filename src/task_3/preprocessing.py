@@ -115,7 +115,7 @@ def load_local_lemma_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
     return train_data, test_data
 
 
-def generate_wordcloud(lemmatisation=False):
+def generate_wordcloud(lemmatisation=True):
     """
     For each label in the dataset, generate and plot a wordcloud.
     """
