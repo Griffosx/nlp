@@ -8,8 +8,8 @@ from task_3.preprocessing import (
 )
 
 from task_3.vectorization import get_vector_datasets
-from task_3.neural_network import train_and_evaluate, analyze_data
-from task_3.classical_models import try_classical_models
+from task_3.models.neural_network import train_and_evaluate
+from task_3.models.classical_models import classical_models_comparison
 
 
 def check_load_and_clean():
@@ -28,9 +28,8 @@ def check_load_and_clean():
 
 if __name__ == "__main__":
     # generate_wordcloud(lemmatisation=True)
-    # save_raw_datasets_to_local(num_samples=1000)
+    # save_raw_datasets_to_local(num_samples=10000)
     # save_lemma_datasets_to_local()
     # get_vector_datasets()
     # train_and_evaluate()
-    # analyze_data()
-    try_classical_models()
+    classical_models_comparison()

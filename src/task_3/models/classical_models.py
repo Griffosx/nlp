@@ -6,7 +6,10 @@ from sklearn.preprocessing import StandardScaler
 from task_3.vectorization import get_vector_datasets
 
 
-def try_classical_models():
+RANDOM_STATE = 42
+
+
+def classical_models_comparison():
     # Get data
     train_df, test_df = get_vector_datasets()
 
@@ -23,10 +26,14 @@ def try_classical_models():
 
     # Define models to try
     models = {
-        "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000),
-        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-        "Gradient Boosting": GradientBoostingClassifier(random_state=42),
-        "SVM": SVC(random_state=42),
+        "Logistic Regression": LogisticRegression(
+            random_state=RANDOM_STATE, max_iter=1000
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=100, random_state=RANDOM_STATE
+        ),
+        "Gradient Boosting": GradientBoostingClassifier(random_state=RANDOM_STATE),
+        "SVM": SVC(random_state=RANDOM_STATE),
     }
 
     # Try each model
@@ -59,4 +66,4 @@ def try_classical_models():
 
 
 if __name__ == "__main__":
-    try_classical_models()
+    classical_models_comparison()

@@ -63,14 +63,8 @@ def create_bow_datasets(
 def get_vector_datasets(vectorization_type="count"):
     train_dataset, test_dataset = load_local_lemma_datasets()
 
-    # TODO REMOVE subset for testing
-    # train_dataset = train_dataset[:10]
-    # test_dataset = test_dataset[:10]
-    # print(train_dataset)
-
     train_dataset, test_dataset = create_bow_datasets(
         train_dataset, test_dataset, vectorization_type
     )
-    # print(train_dataset)
 
     return train_dataset, test_dataset
