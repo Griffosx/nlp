@@ -1,4 +1,5 @@
 from task_3.preprocessing import (
+    load_imdb_dataset,
     load_and_clean_imdb_dataset,
     save_raw_datasets_to_local,
     load_local_raw_datasets,
@@ -27,9 +28,10 @@ def check_load_and_clean():
 
 
 if __name__ == "__main__":
+    load_imdb_dataset(print_stats=True)
     # generate_wordcloud(lemmatisation=True)
     # save_raw_datasets_to_local(num_samples=10000)
     # save_lemma_datasets_to_local()
     # get_vector_datasets()
     # train_and_evaluate()
-    classical_models_comparison()
+    # classical_models_comparison()

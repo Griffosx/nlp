@@ -67,7 +67,7 @@ def clean_dataset(dataset: pd.DataFrame) -> pd.DataFrame:
     # Convert to lowercase
     cleaned_dataset["text"] = cleaned_dataset["text"].str.lower()
 
-    # Remove punctuation and stopwords using spaCy
+    # Remove stopwords using spaCy
     def clean_text(text):
         doc = nlp(text)
         # Keep only non-stopword tokens and strip spaces

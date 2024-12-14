@@ -1,0 +1,187 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\titleformat{\subsection}
+{\normalfont\normalsize\bfseries}{\thesubsection}{0.8em}{}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{white}, % Set background color
+    basicstyle=\ttfamily\footnotesize, % Use a typewriter font
+    commentstyle=\color{gray},     % Comment color
+    keywordstyle=\color{blue},     % Keyword color
+    numberstyle=\tiny\color{gray}, % Line number color
+    stringstyle=\color{red},       % String color
+    breaklines=true,               % Automatically break long lines
+    frame=single,                  % Draw a frame around the code
+    numbers=left,                  % Line numbers on the left
+    numbersep=5pt,                 % Distance of line numbers from code
+    showspaces=false,              % Don't show spaces
+    showstringspaces=false,        % Don't show spaces in strings
+    showtabs=false,                % Don't show tabs
+    tabsize=4                      % Set default tab size
+}
+
+% Apply the custom style
+\lstset{style=mystyle}
+
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\usepackage[backend=biber, style=numeric, citestyle=numeric]{biblatex} % Load biblatex with the numeric style
+\addbibresource{references.bib} % Specify the database of bibliographic references
+\usepackage{hyperref} % For clickable links
+
+\title{Sentiment Analysis Using Machine Learning}
+\author{Davide Giuseppe Griffon}
+\date{}
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    This document serves as the report for the third task in the "Natural Language Processing" course completed by student Davide Giuseppe Griffon at Vilnius University as part of the Master's program in Data Science.
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+
+
+
+\section{Dataset}
+For this sentiment analysis project I used the IMDB Movie Reviews dataset. The dataset was loaded using the Python's \texttt{datasets} library, which provides a convenient interface for accessing various NLP datasets. The dataset contains binary sentiment labels: positive (1) and negative (0), representing the overall sentiment of each movie review.
+
+The dataset consists of movie reviews from the Internet Movie Database (IMDB) and is structured as follows:
+\begin{itemize}
+   \item \textbf{Total Size}: 50,000 movie reviews
+   \item \textbf{Split Distribution}:
+       \begin{itemize}
+           \item Training set: 25,000 reviews
+           \item Testing set: 25,000 reviews
+       \end{itemize}
+   \item \textbf{Class Distribution}: The dataset is perfectly balanced, with:
+       \begin{itemize}
+           \item 50\% negative reviews (label 0)
+           \item 50\% positive reviews (label 1)
+       \end{itemize}
+   \item \textbf{Review Length}: The average review length is 1,325 characters
+\end{itemize}
+
+The data was loaded and processed using a custom \texttt{load\_imdb\_dataset} function, which returns two separate pandas DataFrames: one for training and one for testing.
+
+The balanced nature of the dataset is advantageous for training machine learning models because it eliminates the need for class weight adjustments or other imbalance-handling techniques that might otherwise be necessary. This is one of the main reasons I chose to use this particular dataset for this sentiment analysis task.
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Preprocessing}
+\paragraph{Data Loading and Sampling}
+The initial step involves loading the IMDB dataset using the previously mentioned \texttt{load\_imdb\_dataset} function. For this project, I used a subset of 10,000 reviews (5,000 for training and 5,000 for testing) to optimize computational efficiency while maintaining result quality. This sampling approach allowed for faster preprocessing and training phases without compromising the effectiveness of the sentiment analysis.
+
+\paragraph{Text Cleaning}
+The \texttt{clean\_dataset} function implements several text cleaning steps:
+\begin{itemize}
+    \item Removal of missing values and empty cells to ensure data integrity.
+    \item Elimination of HTML tags (such as \texttt{<br>}) found in the raw text through regex patterns.
+    \item Removal of punctuation marks, retaining only alphanumeric characters through regex patterns.
+    \item Conversion of all text to lowercase.
+    \item Removal of stopwords using the \textit{spaCy} library.
+\end{itemize}
+
+\paragraph{Intermediate Data Storage}
+To optimize the workflow and enable intermediate analysis, the preprocessing pipeline includes data persistence steps:
+
+\begin{enumerate}
+    \item The initially cleaned data (pre-lemmatization) is saved using \\ \texttt{save\_raw\_datasets\_to\_local} function, that stores the cleaned data in two separate CSV files: one for training and one for testing.
+    \item This raw preprocessed data can be retrieved using \texttt{load\_local\_raw\_datasets} function.
+\end{enumerate}
+This intermediate storage allows for analysis of the data before and after lemmatization.
+
+\paragraph{Lemmatization}
+The final preprocessing step involves lemmatization and saves the fully preprocessed data to two new CSV files using the \texttt{save\_lemma\_datasets\_to\_local} function. To load the lemmatized data, the \texttt{load\_local\_lemma\_datasets} function can be used.
+The steps involved in lemmatization are as follows:
+\begin{itemize}
+    \item Loads the raw preprocessed data using the \texttt{load\_local\_raw\_datasets} function.
+    \item Applies \textit{spaCy}'s lemmatization to reduce words to their base form.
+    \item Saves the fully preprocessed data to two separate CSV files: one for training and one for testing.
+\end{itemize}
+
+The separation of raw cleaning and lemmatization steps enables comparative analysis of their impact on the final sentiment classification results, as we'll see in the next section.
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Word Cloud}
+Objective: Present word cloud visualizations.
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Vectorization}
+Objective: Describe the vectorization technique used
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Machine Learning Models}
+Objective: Describe the machine learning model used and any specific training details.
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Performance Metrics}
+Objective: Present performance metrics (accuracy, precision, recall, F1 score) with interpretation of results.
+
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+
+\section{Conclusions}
+Objective: Summarize the results and discuss any notable observations across classes or preprocessing versions.
+
+
+
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------------
+
+
+\end{document}
