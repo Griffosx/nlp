@@ -134,9 +134,73 @@ The separation of raw cleaning and lemmatization steps enables comparative analy
 
 
 \section{Word Cloud}
-Objective: Present word cloud visualizations.
+In order to visualize the most frequent words in the movie reviews and understand their distribution, I generated word clouds using the \textit{WordCloud} library. Word clouds provide an intuitive visualization where the size of each word is proportional to its frequency in the text corpus, making it easier to identify dominant themes and common expressions in the reviews.
 
+\paragraph{Implementation}
+The word cloud generation was implemented using a custom \texttt{generate\_word\_cloud} function that processes the text data and creates visualizations. This function was applied to both the raw preprocessed dataset and the lemmatized dataset to observe the effects of lemmatization on word frequencies:
 
+\begin{itemize}
+    \item For raw data: Applied after basic cleaning but before lemmatization
+    \item For lemmatized data: Applied after all preprocessing steps, including lemmatization
+\end{itemize}
+
+\paragraph{Results Analysis}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{raw_wordcloud.png}
+    \caption{Word Cloud of Raw Preprocessed Reviews}
+    \label{fig:raw_wordcloud}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{lemma_wordcloud.png}
+    \caption{Word Cloud of Lemmatized Reviews}
+    \label{fig:lemma_wordcloud}
+\end{figure}
+
+Analysis of word frequencies reveals several interesting patterns:
+
+\paragraph{General Observations}
+\begin{itemize}
+    \item \textbf{Domain-Specific Terms}: "movie" and "film" are consistently the most frequent words across both sentiment classes and preprocessing methods, indicating their role as domain identifiers rather than sentiment indicators.
+    
+    \item \textbf{Common Base Words}: Terms like "like", "time", "people", and "characters" appear frequently in both positive and negative reviews, suggesting they are neutral in sentiment.
+\end{itemize}
+
+\paragraph{Sentiment-Specific Patterns (after lemmatization)}
+\begin{itemize}
+    \item \textbf{Negative Reviews}:
+        \begin{itemize}
+            \item "bad" appears significantly more frequently (4,308 vs 2939 in positive reviews)
+            \item Higher frequency of "not" (8,050 vs 5,419 in positive reviews)
+            \item Focus on technical aspects: "plot", "acting", "scene"
+        \end{itemize}
+    
+    \item \textbf{Positive Reviews}:
+        \begin{itemize}
+            \item Distinctive positive terms: "great" (2,775), "love" (2,259)
+            \item "good" appears more frequently (4,347 vs 3,500 in negative reviews)
+            \item More emphasis on emotional terms: "love", "great", "best"
+        \end{itemize}
+\end{itemize}
+
+\paragraph{Impact of Lemmatization}
+The lemmatization process had several notable effects:
+\begin{itemize}
+    \item \textbf{Word Consolidation}: 
+        \begin{itemize}
+            \item "movie" and "movies" were consolidated, increasing the frequency from 9,493 to 11,188 in negative reviews
+            \item "character" and "characters" were combined
+            \item "watch", "watching", and "watched" were merged into "watch"
+        \end{itemize}
+    
+    \item \textbf{Negation Handling}: The contraction "nt" was properly transformed to "not", making it more prominent in the frequency counts
+    
+    \item \textbf{Verb Forms}: Various forms of verbs were consolidated (e.g., "see"/"seen", "act"/"acting"), providing clearer frequency patterns
+\end{itemize}
+
+These findings suggest that while some words are strong indicators of sentiment ("bad", "great", "love"), many frequent terms are neutral and context-dependent. The lemmatization process helped clarify word usage patterns by consolidating different forms of the same word, potentially improving the accuracy of subsequent sentiment analysis steps.
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------

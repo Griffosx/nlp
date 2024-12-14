@@ -1,3 +1,4 @@
+from collections import Counter
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
@@ -117,7 +118,7 @@ def load_local_lemma_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def generate_wordcloud(lemmatisation=True):
     """
-    For each label in the dataset, generate and plot a wordcloud.
+    For each label in the dataset, generate and plot a wordcloud and print the top 20 most frequent words.
     """
     if lemmatisation:
         dataset, _ = load_local_lemma_datasets()
@@ -134,21 +135,28 @@ def generate_wordcloud(lemmatisation=True):
         # Filter text for current label
         texts = dataset[dataset["label"] == label]["text"]
 
-        if lemmatisation:
-            # Apply lemmatization using spaCy
-            processed_texts = []
-            for text in texts:
-                doc = nlp(text)
-                lemmatized = " ".join([token.lemma_ for token in doc])
-                processed_texts.append(lemmatized)
-            text = " ".join(processed_texts)
-        else:
-            text = " ".join(texts)
+        text = " ".join(texts)
+
+        # Generate word frequency distribution
+        words = text.split()
+        word_freq = Counter(words)
+
+        # Get top 20 words and their frequencies
+        top_20 = word_freq.most_common(20)
+
+        # Print top 20 words for current label
+        print(
+            f"\nTop 20 most frequent words for {'positive' if label == POSITIVE_LABEL else 'negative'} reviews:"
+        )
+        print("{:<15} {:<10}".format("Word", "Frequency"))
+        print("-" * 25)
+        for word, freq in top_20:
+            print("{:<15} {:<10}".format(word, freq))
 
         # Generate wordcloud
-        wordcloud = WordCloud(width=800, height=400, background_color="white").generate(
-            text
-        )
+        wordcloud = WordCloud(
+            width=800, height=400, background_color="white", stopwords=set()
+        ).generate(text)
 
         # Plot wordcloud
         if len(unique_labels) > 1:

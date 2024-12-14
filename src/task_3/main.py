@@ -28,8 +28,8 @@ def check_load_and_clean():
 
 
 if __name__ == "__main__":
-    load_imdb_dataset(print_stats=True)
-    # generate_wordcloud(lemmatisation=True)
+    # load_imdb_dataset(print_stats=True)
+    generate_wordcloud(lemmatisation=False)
     # save_raw_datasets_to_local(num_samples=10000)
     # save_lemma_datasets_to_local()
     # get_vector_datasets()
