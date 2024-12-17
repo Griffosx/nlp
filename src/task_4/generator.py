@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from typing import Tuple, List
-import gc
 from task_4.loader import GutenbergLoader
 from task_4.encoder import CharacterEncoder
 
@@ -19,7 +17,7 @@ class TextDataset(Dataset):
     def __len__(self) -> int:
         return self.num_sequences
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         # Get the sequence and target
         sequence = self.text_indices[idx : idx + self.seq_length]
         target = self.text_indices[idx + self.seq_length]
@@ -68,10 +66,10 @@ class TextGenerator:
         char_encoder: CharacterEncoder,
         model_save_path: str = "model.pth",
         encoder_save_path: str = "char_encoder.json",
-        epochs: int = 50,
+        epochs: int = 10,
         batch_size: int = 32,
-        learning_rate: float = 0.01,
-    ) -> List[float]:
+        learning_rate: float = 0.001,
+    ) -> list[float]:
         """Train the model and save it to disk."""
         if self.model is None:
             self.build_model(char_encoder.vocab_size)
@@ -81,7 +79,8 @@ class TextGenerator:
 
         # CrossEntropyLoss expects raw logits and target indices
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        # optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.RMSprop(self.model.parameters(), lr=learning_rate)
 
         losses = []
         self.model.train()
@@ -107,8 +106,6 @@ class TextGenerator:
                 batch_count += 1
 
                 del batch_X, batch_y, logits, loss
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
 
                 if batch_count % 100 == 0:
                     print(f"Epoch {epoch+1}, Batch {batch_count}/{len(dataloader)}")
@@ -117,9 +114,7 @@ class TextGenerator:
             losses.append(avg_loss)
             print(f"Epoch [{epoch+1}/{epochs}], Loss: {avg_loss:.4f}")
 
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            # gc.collect()
 
         # Save model and encoder
         torch.save(self.model.state_dict(), model_save_path)
@@ -134,7 +129,7 @@ class TextGenerator:
         seed_text: str,
         model_load_path: str = "model.pth",
         encoder_load_path: str = "char_encoder.json",
-        length: int = 200,
+        length: int = 100,
         diversity: float = 0.5,
     ) -> str:
         """Load model and generate text."""
@@ -144,7 +139,7 @@ class TextGenerator:
         if self.model is None:
             self.build_model(char_encoder.vocab_size)
             self.model.load_state_dict(
-                torch.load(model_load_path, map_location=self.device)
+                torch.load(model_load_path, map_location=self.device, weights_only=True)
             )
 
         if len(seed_text) != self.seq_length:
@@ -181,8 +176,6 @@ class TextGenerator:
                 current_sequence = current_sequence[1:] + next_char
 
                 del x_pred, logits
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
 
         return generated_text
 
@@ -192,8 +185,7 @@ def train():
     encoder = CharacterEncoder()
     generator = TextGenerator(seq_length=40)
 
-    works = loader.load_chesterton_works()
-    combined_text = loader.get_combined_text(works)
+    combined_text = loader.get_chesterton_combined_text()
     encoder.fit(combined_text)
 
     epochs = 10
@@ -205,14 +197,10 @@ def train():
 
 
 def generate():
-    loader = GutenbergLoader()
-    works = loader.load_chesterton_works()
-    combined_text = loader.get_combined_text(works)
-
     generator = TextGenerator(seq_length=40)
 
-    combined_text = "The true soldier fights not because he hates what is in front of him, but because he loves what is behind him."
-    seed_text = combined_text[:40].replace("\n", " ").strip()
+    seed_text = "There was an instant of rigid silence, and then Syme in his turn fell furiously on the other, filled with a flaming curiosity."
+    seed_text = seed_text[:40].replace("\n", " ").strip()
     print(f"Seed text: {seed_text}")
 
     print("\nSeed text:")
@@ -221,15 +209,13 @@ def generate():
 
     for diversity in [0.2, 0.5, 1.0]:
         print(f"\nDiversity: {diversity}")
-        print("-" * 50)
         generated = generator.generate_text(
-            seed_text=seed_text, length=200, diversity=diversity
+            seed_text=seed_text, length=100, diversity=diversity
         )
         print(generated)
-        print("-" * 50)
 
 
 if __name__ == "__main__":
     # Uncomment the function you want to run:
-    # train()  # For training phase
-    generate()  # For generation phase
+    train()  # For training phase
+    # generate()  # For generation phase

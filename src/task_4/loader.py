@@ -22,9 +22,9 @@ class GutenbergLoader:
     def load_chesterton_works(self) -> dict[str, str]:
         """Load Chesterton's major works from the Gutenberg corpus."""
         chesterton_works = {
-            "ball": "chesterton-ball.txt",  # The Ball and the Cross
-            # "brown": "chesterton-brown.txt",  # The Wisdom of Father Brown
-            # "thursday": "chesterton-thursday.txt",  # The Man Who Was Thursday
+            "ball": "chesterton-ball.txt",
+            "brown": "chesterton-brown.txt",
+            "thursday": "chesterton-thursday.txt",
         }
 
         loaded_works = {}
@@ -42,10 +42,14 @@ class GutenbergLoader:
         """Combine all loaded works into a single text."""
         return "\n\n".join(works.values())
 
+    def get_chesterton_combined_text(self) -> str:
+        """Load and combine Chesterton's major works."""
+        works = self.load_chesterton_works()
+        return self.get_combined_text(works)
+
     def print_corpus_stats(self, works: dict[str, str]) -> None:
         """Print basic statistics about the loaded works."""
         print("\nCorpus Statistics:")
-        print("-----------------")
         total_chars = 0
         total_words = 0
         total_lines = 0
@@ -77,7 +81,7 @@ class GutenbergLoader:
         print("Characters: ", " ".join(unique_chars))
 
 
-def main():
+def print_chesterton_info():
     # Initialize the loader
     loader = GutenbergLoader()
 
@@ -102,9 +106,4 @@ def main():
 
     # Print a sample
     print("\nSample from combined text:")
-    print("--------------------------")
     print(combined_text[:500] + "...")
-
-
-if __name__ == "__main__":
-    main()

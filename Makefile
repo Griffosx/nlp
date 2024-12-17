@@ -19,4 +19,4 @@ task_3:
 
 .PHONY: task_4
 task_4:
-	PYTHONPATH=$(PYTHONPATH) python src/task_4/generator.py
+	PYTHONPATH=$(PYTHONPATH) python src/task_4/main.py

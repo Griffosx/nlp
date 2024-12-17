@@ -57,7 +57,7 @@ class CharacterEncoder:
         print(f"\nTotal vocabulary size: {self.vocab_size}")
 
 
-def main():
+def save_mappings():
     print("Loading Chesterton's works...")
     loader = GutenbergLoader()
     works = loader.load_chesterton_works()
@@ -85,7 +85,3 @@ def main():
     indices = [encoder.char_to_index[c] for c in sample_text]
     reconstructed = "".join(encoder.index_to_char[i] for i in indices)
     print(f"Reconstructed text: {reconstructed}")
-
-
-if __name__ == "__main__":
-    main()
