@@ -42,7 +42,7 @@ class LSTM(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x, _ = self.lstm(x)
-        # Return logits (no softmax)
+        # Return logits (softmax will be applied in the generation step)
         return self.fc(x[:, -1, :])
 
 
@@ -79,7 +79,6 @@ class TextGenerator:
 
         # CrossEntropyLoss expects raw logits and target indices
         criterion = nn.CrossEntropyLoss()
-        # optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         optimizer = torch.optim.RMSprop(self.model.parameters(), lr=learning_rate)
 
         losses = []
@@ -113,8 +112,6 @@ class TextGenerator:
             avg_loss = epoch_loss / batch_count
             losses.append(avg_loss)
             print(f"Epoch [{epoch+1}/{epochs}], Loss: {avg_loss:.4f}")
-
-            # gc.collect()
 
         # Save model and encoder
         torch.save(self.model.state_dict(), model_save_path)
@@ -199,8 +196,10 @@ def train():
 def generate():
     generator = TextGenerator(seq_length=40)
 
-    seed_text = "There was an instant of rigid silence, and then Syme in his turn fell furiously on the other, filled with a flaming curiosity."
-    seed_text = seed_text[:40].replace("\n", " ").strip()
+    seed_text = (
+        "There was an instant of rigid silence, and then Syme in his turn fell "
+        "furiously on the other, filled with a flaming curiosity."
+    )[:40]
     print(f"Seed text: {seed_text}")
 
     print("\nSeed text:")
