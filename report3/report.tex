@@ -124,7 +124,7 @@ The steps involved in lemmatization are as follows:
     \item Saves the fully preprocessed data to two separate CSV files: one for training and one for testing.
 \end{itemize}
 
-The separation of raw cleaning and lemmatization steps enables comparative analysis of their impact on the final sentiment classification results, as we'll see in the next section.
+The separation of raw cleaning and lemmatization steps enables comparative analysis of their impact on the Word Cloud, as we'll see in the next section.
 
 
 % -------------------------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ Analysis of word frequencies reveals several interesting patterns:
 \paragraph{Impact of Lemmatization}
 The lemmatization process had several notable effects:
 \begin{itemize}
-    \item \textbf{Word Consolidation}: 
+    \item \textbf{Word Consolidation - examples}: 
         \begin{itemize}
             \item "movie" and "movies" were consolidated, increasing the frequency from 9,493 to 11,188 in negative reviews
             \item "character" and "characters" were combined
@@ -319,15 +319,342 @@ The sentiment analysis task on IMDB movie reviews yielded several key findings:
     \item TF-IDF vectorization consistently outperformed other vectorization methods
     \item SVM achieved the best performance with 84\% test accuracy
     \item All models maintained balanced performance between positive and negative classes
-    \item Preprocessing steps, particularly lemmatization, improved model performance by consolidating word variations
 \end{itemize}
 
-The results demonstrate that classical machine learning models can effectively perform sentiment analysis on movie reviews, despite modern deep learning models will probably achieve better results.
+The results demonstrate that classical machine learning models can effectively perform sentiment analysis on movie reviews, despite modern deep learning models would probably achieve better results.
+
+\newpage
 
 
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
+
+
+
+\section{Appendix - Code}
+
+All the code is available in the GitHub repository \url{https://github.com/Griffosx/nlp} under the src/task\_3 folder.
+For completeness, I include here the code for the main files used in this project.
+
+File preprocessing.py
+\begin{lstlisting}[language=Python]
+from collections import Counter
+import pandas as pd
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from datasets import load_dataset
+from task_3.constants import (
+    nlp,
+    POSITIVE_LABEL,
+    TRAIN_RAW_DATA_PATH,
+    TEST_RAW_DATA_PATH,
+    TRAIN_LEMMA_DATA_PATH,
+    TEST_LEMMA_DATA_PATH,
+)
+
+    
+def load_imdb_dataset(
+    num_samples=None, print_stats=False
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Load the IMDB movie reviews dataset for sentiment analysis.
+    """
+    # Load the dataset
+    dataset = load_dataset("imdb")
+
+    # Convert to pandas DataFrames
+    train_df = pd.DataFrame(dataset["train"])
+    test_df = pd.DataFrame(dataset["test"])
+
+    # Sample if specified
+    if num_samples:
+        train_df = train_df.sample(min(num_samples, len(train_df)), random_state=42)
+        test_df = test_df.sample(min(num_samples, len(test_df)), random_state=42)
+
+    if print_stats:
+        # Add some basic statistics
+        print(f"Dataset Statistics:")
+        print(f"Training samples: {len(train_df)}")
+        print(f"Testing samples: {len(test_df)}")
+        print(f"\nClass distribution in training:")
+        print(train_df["label"].value_counts(normalize=True))
+        # Calculate average review length
+        train_df["review_length"] = train_df["text"].str.len()
+        print(
+            f"\nAverage review length: {train_df['review_length'].mean():.0f} characters"
+        )
+
+    return train_df, test_df
+
+
+def clean_dataset(dataset: pd.DataFrame) -> pd.DataFrame:
+    # Create a copy of the dataset
+    cleaned_dataset = dataset.copy()
+
+    # Remove missing values and empty cells
+    cleaned_dataset = cleaned_dataset.dropna(subset=["text"])
+    cleaned_dataset = cleaned_dataset[cleaned_dataset["text"].str.strip().astype(bool)]
+
+    # Remove HTML tags
+    cleaned_dataset["text"] = cleaned_dataset["text"].str.replace(
+        r"<[^>]*>", "", regex=True
+    )
+
+    # Remove puntuation, leave only alphanumeric characters using regex
+    cleaned_dataset["text"] = cleaned_dataset["text"].str.replace(
+        r"[^\w\s]", "", regex=True
+    )
+
+    # Convert to lowercase
+    cleaned_dataset["text"] = cleaned_dataset["text"].str.lower()
+
+    # Remove stopwords using spaCy
+    def clean_text(text):
+        doc = nlp(text)
+        # Keep only non-stopword tokens and strip spaces
+        return " ".join(token.text.strip() for token in doc if not token.is_stop)
+
+    cleaned_dataset["text"] = cleaned_dataset["text"].apply(clean_text)
+
+    return cleaned_dataset
+
+
+def load_and_clean_imdb_dataset(
+    num_samples=None, print_stats=False
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    train_data, test_data = load_imdb_dataset(num_samples, print_stats)
+    return clean_dataset(train_data), clean_dataset(test_data)
+
+
+def save_raw_datasets_to_local(num_samples=None, print_stats=False):
+    train_data, test_data = load_and_clean_imdb_dataset(num_samples, print_stats)
+    train_data.to_csv(TRAIN_RAW_DATA_PATH, index=False)
+    test_data.to_csv(TEST_RAW_DATA_PATH, index=False)
+
+
+def load_local_raw_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
+    train_data = pd.read_csv(TRAIN_RAW_DATA_PATH)
+    test_data = pd.read_csv(TEST_RAW_DATA_PATH)
+    return train_data, test_data
+
+
+def save_lemma_datasets_to_local():
+    train_data, test_data = load_local_raw_datasets()
+    train_data["text"] = train_data["text"].apply(
+        lambda x: " ".join([token.lemma_ for token in nlp(x)])
+    )
+    test_data["text"] = test_data["text"].apply(
+        lambda x: " ".join([token.lemma_ for token in nlp(x)])
+    )
+    train_data.to_csv(TRAIN_LEMMA_DATA_PATH, index=False)
+    test_data.to_csv(TEST_LEMMA_DATA_PATH, index=False)
+
+
+def load_local_lemma_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
+    train_data = pd.read_csv(TRAIN_LEMMA_DATA_PATH)
+    test_data = pd.read_csv(TEST_LEMMA_DATA_PATH)
+    return train_data, test_data
+
+
+def generate_wordcloud(lemmatisation=True):
+    """
+    For each label in the dataset, generate and plot a wordcloud and print the top 20 most frequent words.
+    """
+    if lemmatisation:
+        dataset, _ = load_local_lemma_datasets()
+    else:
+        dataset, _ = load_local_raw_datasets()
+
+    # Get unique labels from the dataset
+    unique_labels = dataset["label"].unique()
+
+    # Create a figure with subplots for each label
+    fig, axes = plt.subplots(1, len(unique_labels), figsize=(15, 5))
+
+    for idx, label in enumerate(unique_labels):
+        # Filter text for current label
+        texts = dataset[dataset["label"] == label]["text"]
+
+        text = " ".join(texts)
+
+        # Generate word frequency distribution
+        words = text.split()
+        word_freq = Counter(words)
+
+        # Get top 20 words and their frequencies
+        top_20 = word_freq.most_common(20)
+
+        # Print top 20 words for current label
+        print(
+            f"\nTop 20 most frequent words for {'positive' if label == POSITIVE_LABEL else 'negative'} reviews:"
+        )
+        print("{:<15} {:<10}".format("Word", "Frequency"))
+        print("-" * 25)
+        for word, freq in top_20:
+            print("{:<15} {:<10}".format(word, freq))
+
+        # Generate wordcloud
+        wordcloud = WordCloud(
+            width=800, height=400, background_color="white", stopwords=set()
+        ).generate(text)
+
+        # Plot wordcloud
+        if len(unique_labels) > 1:
+            axes[idx].imshow(wordcloud)
+            axes[idx].axis("off")
+            axes[idx].set_title(
+                f"Label: {'positive' if label == POSITIVE_LABEL else 'negative'}"
+            )
+        else:
+            axes.imshow(wordcloud)
+            axes.axis("off")
+            axes.set_title(
+                f"Label: {'positive' if label == POSITIVE_LABEL else 'negative'}"
+            )
+
+    plt.tight_layout()
+    plt.show()
+    
+\end{lstlisting}
+
+File vectorization/bow.py
+\begin{lstlisting}[language=Python]
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+import pandas as pd
+from task_3.preprocessing import load_local_lemma_datasets
+
+
+def create_bow_datasets(
+    train_dataset,
+    test_dataset,
+    vectorizer_type="count",
+    max_features=1000,
+    ngram_range=(1, 1),
+):
+    """
+    Create BOW vectors using either CountVectorizer or TfidfVectorizer
+    """
+    # Choose vectorizer
+    if vectorizer_type == "tfidf":
+        vectorizer = TfidfVectorizer(
+            max_features=max_features, ngram_range=ngram_range, min_df=2
+        )  # Ignore terms that appear in less than 2 documents
+    else:
+        vectorizer = CountVectorizer(
+            max_features=max_features, ngram_range=ngram_range, min_df=2
+        )
+
+    # Fit and transform training data
+    X_train = vectorizer.fit_transform(train_dataset["text"])
+
+    # Transform test data
+    X_test = vectorizer.transform(test_dataset["text"])
+
+    # Convert to DataFrames
+    feature_names = vectorizer.get_feature_names_out()
+
+    train_df = pd.DataFrame(X_train.toarray(), columns=feature_names)
+    train_df["sentiment"] = train_dataset["label"]
+
+    test_df = pd.DataFrame(X_test.toarray(), columns=feature_names)
+    test_df["sentiment"] = test_dataset["label"]
+
+    # Print some information about the vectorization
+    print(f"Vocabulary size: {len(vectorizer.vocabulary_)}")
+    print(f"Feature matrix shape: {X_train.shape}")
+    print("\nMost common terms:")
+    if vectorizer_type == "count":
+        term_frequencies = X_train.sum(axis=0).A1
+        top_terms = sorted(
+            zip(vectorizer.get_feature_names_out(), term_frequencies),
+            key=lambda x: x[1],
+            reverse=True,
+        )[:10]
+        for term, freq in top_terms:
+            print(f"{term}: {freq}")
+
+    return train_df, test_df
+
+
+def get_vector_datasets(vectorization_type="count"):
+    train_dataset, test_dataset = load_local_lemma_datasets()
+
+    train_dataset, test_dataset = create_bow_datasets(
+        train_dataset, test_dataset, vectorization_type
+    )
+
+    return train_dataset, test_dataset
+\end{lstlisting}
+
+File models/classical\_models.py
+\begin{lstlisting}[language=Python]
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import StandardScaler
+from task_3.vectorization import get_vector_datasets
+
+
+RANDOM_STATE = 42
+
+
+def classical_models_comparison():
+    # Get data
+    train_df, test_df = get_vector_datasets("word2vect")
+
+    # Prepare features and labels
+    X_train = train_df.drop("sentiment", axis=1).values
+    y_train = train_df["sentiment"].values
+    X_test = test_df.drop("sentiment", axis=1).values
+    y_test = test_df["sentiment"].values
+
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Define models to try
+    models = {
+        "Logistic Regression": LogisticRegression(
+            random_state=RANDOM_STATE, max_iter=1000
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=100, random_state=RANDOM_STATE
+        ),
+        "Gradient Boosting": GradientBoostingClassifier(random_state=RANDOM_STATE),
+        "SVM": SVC(random_state=RANDOM_STATE),
+    }
+
+    # Try each model
+    for name, model in models.items():
+        print(f"\nTraining {name}...")
+        model.fit(X_train_scaled, y_train)
+
+        # Make predictions
+        train_pred = model.predict(X_train_scaled)
+        test_pred = model.predict(X_test_scaled)
+
+        # Print results
+        print(f"{name} Results:")
+        print(f"Training Accuracy: {accuracy_score(y_train, train_pred):.4f}")
+        print(f"Test Accuracy: {accuracy_score(y_test, test_pred):.4f}")
+        print("\nDetailed Test Report:")
+        print(classification_report(y_test, test_pred))
+
+        # For Random Forest and Gradient Boosting, print feature importance
+        if hasattr(model, "feature_importances_"):
+            importances = model.feature_importances_
+            top_features = sorted(
+                zip(range(len(importances)), importances),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:10]
+            print("\nTop 10 Most Important Features:")
+            for idx, importance in top_features:
+                print(f"Feature {idx}: {importance:.4f}")
+\end{lstlisting}
 
 
 \end{document}

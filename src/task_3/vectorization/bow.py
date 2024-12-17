@@ -12,11 +12,6 @@ def create_bow_datasets(
 ):
     """
     Create BOW vectors using either CountVectorizer or TfidfVectorizer
-
-    Parameters:
-    - vectorizer_type: 'count' for regular BOW, 'tfidf' for TF-IDF weighted
-    - max_features: maximum number of features to keep
-    - ngram_range: tuple (min_n, max_n) representing the range of ngrams
     """
     # Choose vectorizer
     if vectorizer_type == "tfidf":
