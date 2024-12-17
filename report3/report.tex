@@ -201,6 +201,9 @@ The lemmatization process had several notable effects:
 \end{itemize}
 
 These findings suggest that while some words are strong indicators of sentiment ("bad", "great", "love"), many frequent terms are neutral and context-dependent. The lemmatization process helped clarify word usage patterns by consolidating different forms of the same word, potentially improving the accuracy of subsequent sentiment analysis steps.
+
+
+
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
@@ -208,17 +211,70 @@ These findings suggest that while some words are strong indicators of sentiment 
 
 
 \section{Vectorization}
-Objective: Describe the vectorization technique used
+To convert the text data into a numerical format suitable for machine learning model training, I tried three distinct vectorization techniques: Word2Vec, Bag-of-Words (BoW), and Term Frequency-Inverse Document Frequency (TF-IDF).
+
+\paragraph{Implementation Architecture}
+I developed a dedicated \texttt{vectorization} module to handle all text vectorization processes. The module's core function \texttt{get\_vector\_datasets} provides a unified interface for accessing different vectorization methods:
+
+\begin{lstlisting}[language=Python]
+def get_vector_datasets(vectorization_type="tfidf"):
+    vectorization_function = {
+        "count": lambda: get_vector_datasets_bow("count"),
+        "tfidf": lambda: get_vector_datasets_bow("tfidf"),
+        "word2vec": get_vector_datasets_word2vec,
+    }
+    return vectorization_function[vectorization_type]()
+\end{lstlisting}
+
+\paragraph{Vectorization Methods}
+The implementation leverages different libraries for each method:
+\begin{itemize}
+    \item \textbf{Word2Vec}: Implemented using the \textit{gensim} library
+    \item \textbf{Bag-of-Words (BoW)}: Implemented using \textit{scikit-learn}'s \texttt{CountVectorizer}
+    \item \textbf{TF-IDF}: Implemented using \textit{scikit-learn}'s \texttt{TfidfVectorizer}
+\end{itemize}
+
+\paragraph{Data Flow}
+Each vectorization method follows a consistent workflow:
+\begin{enumerate}
+    \item Receives preprocessed training and testing datasets as separate pandas DataFrames
+    \item Fits the vectorizer on the training data only to prevent data leakage
+    \item Transforms both training and testing sets using the fitted vectorizer
+    \item Returns vectorized versions of both datasets maintaining the original split
+\end{enumerate}
+
+In this way I could easy experiments with different vectorization techniques while maintaining consistent interfaces for the subsequent machine learning models. The default TF-IDF method was chosen based on preliminary experiments showing better performance with the movie review corpus.
+
 
 
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
-
 
 
 \section{Machine Learning Models}
-Objective: Describe the machine learning model used and any specific training details.
+Since in task 2 I already used a deep learning model, for this task I chose to try classical machine learning models. I experimented with four different models: Logistic Regression, Random Forest, Gradient Boosting and Support Vector Machine. I run all of them and compared their performance using the same vectorized data.
+
+\paragraph{Implementation Details}
+The code resides in the \texttt{models/classical\_models.py} file. All models were implemented using the \textit{scikit-learn} library. The function \texttt{classical\_models\_comparison} was used to run and compare models with the following configurations:
+
+\begin{lstlisting}[language=Python]
+models = {
+    "Logistic Regression": LogisticRegression(
+        random_state=RANDOM_STATE, max_iter=1000
+    ),
+    "Random Forest": RandomForestClassifier(
+        n_estimators=100, random_state=RANDOM_STATE
+    ),
+    "Gradient Boosting": GradientBoostingClassifier(
+        random_state=RANDOM_STATE
+    ),
+    "SVM": SVC(random_state=RANDOM_STATE),
+}
+\end{lstlisting}
+
+Each model was trained and evaluated using the same vectorized dataset to ensure a fair comparison of their performance.
+
 
 
 % -------------------------------------------------------------------------------------------------
@@ -226,21 +282,47 @@ Objective: Describe the machine learning model used and any specific training de
 % -------------------------------------------------------------------------------------------------
 
 
+\section{Results and Analysis}
+I evaluated all models with each vectorization method, conducting a total of 4×3=12 experiments. The TF-IDF vectorization method demonstrated the best overall performance, and its results are presented below for each model.
 
-\section{Performance Metrics}
-Objective: Present performance metrics (accuracy, precision, recall, F1 score) with interpretation of results.
+In table \ref{tab:model-performance}, I present the performance metrics for each model using the TF-IDF vectorization method. The metrics include training accuracy, test accuracy, precision, and F1-score.
+
+\begin{table}[h]
+\centering
+\caption{Model Performance Comparison}
+\label{tab:model-performance}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Training Accuracy} & \textbf{Test Accuracy} & \textbf{Precision} & \textbf{F1-Score} \\
+\midrule
+Logistic Regression & 0.8902 & 0.8308 & 0.83 & 0.83 \\
+Random Forest & 1.0000 & 0.8187 & 0.82 & 0.82 \\
+Gradient Boosting & 0.8353 & 0.7989 & 0.80 & 0.80 \\
+SVM & 0.9751 & 0.8400 & 0.84 & 0.84 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Results Summary}
+Among all tested models, SVM achieved the highest test accuracy (0.84), followed closely by Logistic Regression (0.83). Random Forest showed signs of overfitting with perfect training accuracy (1.0) but lower test accuracy (0.82). Gradient Boosting demonstrated the lowest performance with a test accuracy of 0.80. All models maintained balanced performance across classes, as evidenced by similar precision, recall, and F1-scores for both positive and negative reviews.
 
 
 
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
-
 
 
 \section{Conclusions}
-Objective: Summarize the results and discuss any notable observations across classes or preprocessing versions.
+The sentiment analysis task on IMDB movie reviews yielded several key findings:
+\begin{itemize}
+    \item TF-IDF vectorization consistently outperformed other vectorization methods
+    \item SVM achieved the best performance with 84\% test accuracy
+    \item All models maintained balanced performance between positive and negative classes
+    \item Preprocessing steps, particularly lemmatization, improved model performance by consolidating word variations
+\end{itemize}
 
+The results demonstrate that classical machine learning models can effectively perform sentiment analysis on movie reviews, despite modern deep learning models will probably achieve better results.
 
 
 % -------------------------------------------------------------------------------------------------
