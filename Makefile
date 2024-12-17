@@ -16,3 +16,7 @@ test_model:
 .PHONY: task_3
 task_3:
 	PYTHONPATH=$(PYTHONPATH) python src/task_3/main.py
+
+.PHONY: task_4
+task_4:
+	PYTHONPATH=$(PYTHONPATH) python src/task_4/main.py
