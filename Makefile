@@ -13,6 +13,10 @@ train_model:
 test_model:
 	PYTHONPATH=$(PYTHONPATH) python src/task_1_and_1/model/cnn/test.py
 
+.PHONY: task_2
+task_2:
+	PYTHONPATH=$(PYTHONPATH) python src/task_2/main.py
+
 .PHONY: task_3
 task_3:
 	PYTHONPATH=$(PYTHONPATH) python src/task_3/main.py
