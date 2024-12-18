@@ -11,7 +11,7 @@ RANDOM_STATE = 42
 
 def classical_models_comparison():
     # Get data
-    train_df, test_df = get_vector_datasets("word2vect")
+    train_df, test_df = get_vector_datasets("tfidf")
 
     # Prepare features and labels
     X_train = train_df.drop("sentiment", axis=1).values
